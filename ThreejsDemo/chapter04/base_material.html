@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+	<script type="text/javascript" src="../lib/CanvasRenderer.js"></script>
+	<script type="text/javascript" src="../lib/Projector.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 渲染器类型对象
+		var webGLRenderer, canvasRenderer;
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var cube, sphere, plane, square;
+		// 公共材质对象
+		var meshMaterial;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls, basicMrContr, normalMrContr, lambertMrContr, phongMrContr;
+
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.02; // 旋转速度
+	      this.selectedMesh = "cube"; // 选中的网格对象
+	      // 切换渲染器
+	      this.switchRenderer = function(){
+	      	if(renderer instanceof THREE.WebGLRenderer){
+	      		renderer = canvasRenderer;
+	      		document.getElementById("webgl-output").innerHTML = "";
+	      		document.getElementById("webgl-output").appendChild(renderer.domElement);
+	      	} else {
+	      		renderer = webGLRenderer;
+	      		document.getElementById("webgl-output").innerHTML = "";
+	      		document.getElementById("webgl-output").appendChild(renderer.domElement);
+	      	}
+	      }
+	      // 选中材质标识
+	      this.materialType = "BasicMaterial";
+	    };
+	    basicMrContr = new function(){
+	    	this.opacity = meshMaterial.opacity; // 配合transparent使用
+	    	this.transparent = meshMaterial.transparent;
+	    	this.overdraw = meshMaterial.overdraw; // 过度描绘，使用canvas渲染时，多边形会渲染得大一些，填充缝隙
+	    	this.visible = meshMaterial.visible; // 定义材质是否可见
+	    	this.side = "front"; // 定义是否前后绘制的标识
+
+	    	this.color = meshMaterial.color.getStyle(); // 材质颜色
+	    	this.wireframe = meshMaterial.wireframe; // 将材质渲染成线框，对调试有好处
+	    	this.wireframeLinewidth = meshMaterial.wireframeLinewidth; // ，可定义线框中线的宽度，不适用于webGL渲染
+	    	this.wireframeLinejoin = meshMaterial.wireframeLinejoin; // 线段连接点如何显示，默认为round,还有斜角和尖角，不适用于webGL渲染
+	    };
+	    normalMrContr = new function(){
+	    	this.opacity = meshMaterial.opacity; // 配合transparent使用
+	    	this.transparent = meshMaterial.transparent;
+	    	this.overdraw = meshMaterial.overdraw; // 过度描绘，使用canvas渲染时，多边形会渲染得大一些，填充缝隙
+	    	this.visible = meshMaterial.visible; // 定义材质是否可见
+	    	this.side = "front"; // 定义是否前后绘制的标识
+
+	    	this.color = meshMaterial.color.getStyle(); // 材质颜色
+	    	this.wireframe = meshMaterial.wireframe; // 将材质渲染成线框，对调试有好处
+	    	this.wireframeLinewidth = meshMaterial.wireframeLinewidth; // ，可定义线框中线的宽度
+	    	this.shading = "flat"; // 设置着色方法的标识
+	    	// 添加辅助观察法线
+	    	this.addNormalAxes = function(){
+	    		switch(controls.selectedMesh){
+	    			case "cube":
+    				for (var i = 0, facesLen = cube.geometry.faces.length ; i < facesLen; i++) {
+    					var face = cube.geometry.faces[i];
+    					// 寻找每个三角面的重心坐标，先初始化为单位向量，各顶点分量相加/3
+    					var centroid = new THREE.Vector3( 0, 0, 0 );
+    					// vertices中的下标与face.a/b/c对应
+    					centroid.add(cube.geometry.vertices[face.a]);
+    					centroid.add(cube.geometry.vertices[face.b]);
+    					centroid.add(cube.geometry.vertices[face.c]);
+    					centroid.divideScalar(3);
+    					var arrow = new THREE.ArrowHelper(face.normal, centroid, 2, 0x3333FF, 0.5, 0.5);
+    					cube.add(arrow);
+    				}
+    				break;
+    			case "sphere":
+    				for (var i = 0, facesLen = sphere.geometry.faces.length ; i < facesLen; i++) {
+    					var face = sphere.geometry.faces[i];
+    					// 寻找每个三角面的重心坐标，先初始化为单位向量，各顶点分量相加/3
+    					var centroid = new THREE.Vector3( 0, 0, 0 );
+    					// vertices中的下标与face.a/b/c对应
+    					centroid.add(sphere.geometry.vertices[face.a]);
+    					centroid.add(sphere.geometry.vertices[face.b]);
+    					centroid.add(sphere.geometry.vertices[face.c]);
+    					centroid.divideScalar(3);
+    					var arrow = new THREE.ArrowHelper(face.normal, centroid, 2, 0x3333FF, 0.5, 0.5);
+    					sphere.add(arrow);
+    				}
+    				break;
+	    		}
+	    	}
+	    };
+	    lambertMrContr = new function(){
+	    	this.opacity = meshMaterial.opacity; // 配合transparent使用
+	    	this.transparent = meshMaterial.transparent;
+	    	this.overdraw = meshMaterial.overdraw; // 过度描绘，使用canvas渲染时，多边形会渲染得大一些，填充缝隙
+	    	this.visible = meshMaterial.visible; // 定义材质是否可见
+	    	this.side = "front"; // 定义是否前后绘制的标识
+
+	    	this.color = meshMaterial.color.getStyle(); // 材质颜色
+	    	// this.ambient = meshMaterial.ambient.getHex(); // 材质的环境色，与ambientLight一起使用，颜色是两者相乘，默认白色
+	    	// this.emissive = meshMaterial.emissive.getHex(); // 材质发射出的颜色，并不像一个光源，一种纯粹、不受光照颜色影响的颜色，默认是黑色
+	    	// 由于这里默认加载的是basic材质，这里直接填充默认颜色
+	    	this.ambient = 'rgb(255, 255, 255)'; 
+	    	this.emissive = 'rgb(0, 0, 0)'; 
+	    	this.wrapAround = false;
+	    	this.wrapR = 1;
+	    	this.wrapG = 1;
+	    	this.wrapB = 1;
+	    };
+	    phongMrContr = new function(){
+	    	this.opacity = meshMaterial.opacity; // 配合transparent使用
+	    	this.transparent = meshMaterial.transparent;
+	    	this.overdraw = meshMaterial.overdraw; // 过度描绘，使用canvas渲染时，多边形会渲染得大一些，填充缝隙
+	    	this.visible = meshMaterial.visible; // 定义材质是否可见
+	    	this.side = "front"; // 定义是否前后绘制的标识
+
+	    	this.color = meshMaterial.color.getStyle(); // 材质颜色
+	    	// this.ambient = meshMaterial.ambient.getHex(); // 材质的环境色，与ambientLight一起使用，颜色是两者相乘，默认白色
+	    	// this.emissive = meshMaterial.emissive.getHex(); // 材质发射出的颜色，并不像一个光源，一种纯粹、不受光照颜色影响的颜色，默认是黑色
+	    	// 由于这里默认加载的是basic材质，这里直接填充默认颜色
+	    	this.ambient = 'rgb(255, 255, 255)'; 
+	    	this.emissive = 'rgb(0, 0, 0)'; 
+	    	this.wrapAround = false;
+	    	this.wrapR = 1;
+	    	this.wrapG = 1;
+	    	this.wrapB = 1;
+
+	    	this.specular = 'rgb(17, 17, 17)'; // 材质的光亮程度及高光部分的颜色，与材质颜色相同则类似金属，灰色则类似塑料，默认值0x111111
+	    	this.shininess = 30; // 指定高光部分的亮度，默认30
+	    	this.metal = false; // 开启会使用稍微不同的方式来计算每个像素的颜色，使对象更像金属
+	    };
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.add(controls, 'selectedMesh', ["cube", "sphere", "square"]).onChange(function(e){
+    		// 先清空在选择加入场景
+    		removeSceneMeshs();
+    		// 更换网格对象
+    		switchAddObject(e);
+    	})
+    	gui.add(controls, 'switchRenderer');
+
+    	// 定义层级对象
+    	var basicMrFolder, normalMrFolder, faceMrFolder, lambertMrFolder, phongMrFolder;
+    	gui.add(controls, 'materialType', 
+    		["BasicMaterial", "NormalMaterial", "LambertMaterial", "PhongMaterial"]).onChange(function(e){
+    			switch(e){
+    				case "BasicMaterial":
+    				// 控制菜单展示
+    				basicMrFolder.open();
+    				normalMrFolder.close();
+    				lambertMrFolder.close();
+    				phongMrFolder.close();
+
+    				removeSceneMeshs();
+    				meshMaterial = new THREE.MeshBasicMaterial({color: 0x7777FF});
+    				createMeshObjects();
+    				switchAddObject(controls.selectedMesh);
+    				break;
+    				case "NormalMaterial":
+    				// 控制菜单展示
+    				normalMrFolder.open();
+    				basicMrFolder.close();
+    				lambertMrFolder.close();
+    				phongMrFolder.close();
+
+    				removeSceneMeshs();
+    				meshMaterial = new THREE.MeshNormalMaterial({color: 0x7777FF});
+    				createMeshObjects();
+    				switchAddObject(controls.selectedMesh);
+    				break;
+    				
+    				case "LambertMaterial":
+    				// 控制菜单展示
+    				lambertMrFolder.open();
+    				basicMrFolder.close();
+    				normalMrFolder.close();
+    				phongMrFolder.close();
+
+    				removeSceneMeshs();
+    				meshMaterial = new THREE.MeshLambertMaterial({color: 0x7777FF});
+    				createMeshObjects();
+    				switchAddObject(controls.selectedMesh);
+    				break;
+    				case "PhongMaterial":
+    				// 控制菜单展示
+    				phongMrFolder.open();
+    				basicMrFolder.close();
+    				lambertMrFolder.close();
+    				normalMrFolder.close();
+
+    				removeSceneMeshs();
+    				meshMaterial = new THREE.MeshPhongMaterial({color: 0x7777FF});
+    				createMeshObjects();
+    				switchAddObject(controls.selectedMesh);
+    				break;
+    			}
+    		})
+
+    	/**
+    	 * ///////////////////////////////////////////////////////////////
+    	 * basic材质
+    	 * ///////////////////////////////////////////////////////////////
+    	 */
+    	basicMrFolder = gui.addFolder("1.BasicMaterial");
+    	basicMrFolder.add(basicMrContr, 'opacity', 0, 1).onChange(function(e){
+    		meshMaterial.opacity = e;
+    	})
+    	basicMrFolder.add(basicMrContr, 'transparent').onChange(function(e){
+    		meshMaterial.transparent = e;
+    	})
+    	
+    	basicMrFolder.add(basicMrContr, 'visible').onChange(function(e){
+    		meshMaterial.visible = e;
+    	})
+    	basicMrFolder.add(basicMrContr, 'side', ["front", "back", "double"]).onChange(function(e){
+    		switch(e){
+    			case "front":
+    				meshMaterial.side = THREE.FrontSide;
+    				break;
+    			case "back":
+    				meshMaterial.side = THREE.BackSide;
+    				break;
+    			case "double":
+    				meshMaterial.side = THREE.DoubleSide;
+    				break;	
+    		}
+    		// 对于材质中某些属性的更改需要将该属性设为true
+    		meshMaterial.needsUpdate = true;
+    	})
+    	basicMrFolder.addColor(basicMrContr, 'color').onChange(function(e){
+    		// 更换材质颜色
+    		meshMaterial.color.setStyle(e);
+    	})
+    	basicMrFolder.add(basicMrContr, 'wireframe').onChange(function(e){
+    		meshMaterial.wireframe = e;
+    	})
+    	basicMrFolder.add(basicMrContr, 'wireframeLinewidth', 0, 20).onChange(function(e){
+    		meshMaterial.wireframeLinewidth = e;
+    	})
+    	var basicCanvasFolder = basicMrFolder.addFolder("CanvasRenderer Params");
+    	basicCanvasFolder.add(basicMrContr, 'overdraw').onChange(function(e){
+    		meshMaterial.overdraw = e;
+    	})
+    	basicCanvasFolder.add(basicMrContr, 'wireframeLinejoin', ['round', 'bevel', 'miter']).onChange(function(e){
+    		meshMaterial.wireframeLinejoin = e;
+    	})
+
+    	/**
+    	 * ///////////////////////////////////////////////////////////////
+    	 * normal材质
+    	 * ///////////////////////////////////////////////////////////////
+    	 */
+    	normalMrFolder = gui.addFolder("2.NormalMaterial");
+    	normalMrFolder.add(normalMrContr, 'opacity', 0, 1).onChange(function(e){
+    		meshMaterial.opacity = e;
+    	})
+    	normalMrFolder.add(normalMrContr, 'transparent').onChange(function(e){
+    		meshMaterial.transparent = e;
+    	})
+    	normalMrFolder.add(normalMrContr, 'visible').onChange(function(e){
+    		meshMaterial.visible = e;
+    	})
+    	normalMrFolder.add(normalMrContr, 'side', ["front", "back", "double"]).onChange(function(e){
+    		switch(e){
+    			case "front":
+    				meshMaterial.side = THREE.FrontSide;
+    				break;
+    			case "back":
+    				meshMaterial.side = THREE.BackSide;
+    				break;
+    			case "double":
+    				meshMaterial.side = THREE.DoubleSide;
+    				break;	
+    		}
+    		// 对于材质中某些属性的更改需要将该属性设为true
+    		meshMaterial.needsUpdate = true;
+    	})
+    	// normalMrFolder.addColor(normalMrContr, 'color').onChange(function(e){
+    	// 	// 更换材质颜色
+    	// 	meshMaterial.color.setStyle(e);
+    	// })
+    	normalMrFolder.add(normalMrContr, 'wireframe').onChange(function(e){
+    		meshMaterial.wireframe = e;
+    	})
+    	normalMrFolder.add(normalMrContr, 'wireframeLinewidth', 0, 20).onChange(function(e){
+    		meshMaterial.wireframeLinewidth = e;
+    	})
+    	normalMrFolder.add(normalMrContr, 'shading', ["flat", "smooth"]).onChange(function(e){
+    		switch(e){
+    			case "flat":
+    				meshMaterial.shading = THREE.FlatShading;
+    				break;
+    			case "smooth":
+    				meshMaterial.shading = THREE.SmoothShading;
+    				break;	
+    		}
+    		removeSceneMeshs();
+    		createMeshObjects();
+    		switchAddObject(controls.selectedMesh);
+    		meshMaterial.needsUpdate = true;
+    	})
+    	normalMrFolder.add(normalMrContr, 'addNormalAxes');
+
+    	/**
+    	 * ///////////////////////////////////////////////////////////////
+    	 * lambert材质
+    	 * ///////////////////////////////////////////////////////////////
+    	 */
+    	lambertMrFolder = gui.addFolder("3.LambertMaterial");
+    	lambertMrFolder.add(lambertMrContr, 'opacity', 0, 1).onChange(function(e){
+    		meshMaterial.opacity = e;
+    	})
+    	lambertMrFolder.add(lambertMrContr, 'transparent').onChange(function(e){
+    		meshMaterial.transparent = e;
+    	})
+    	lambertMrFolder.add(lambertMrContr, 'visible').onChange(function(e){
+    		meshMaterial.visible = e;
+    	})
+    	lambertMrFolder.add(lambertMrContr, 'side', ["front", "back", "double"]).onChange(function(e){
+    		switch(e){
+    			case "front":
+    				meshMaterial.side = THREE.FrontSide;
+    				break;
+    			case "back":
+    				meshMaterial.side = THREE.BackSide;
+    				break;
+    			case "double":
+    				meshMaterial.side = THREE.DoubleSide;
+    				break;	
+    		}
+    		// 对于材质中某些属性的更改需要将该属性设为true
+    		meshMaterial.needsUpdate = true;
+    	})
+    	lambertMrFolder.addColor(lambertMrContr, 'color').onChange(function(e){
+    		// 更换材质颜色
+    		meshMaterial.color.setStyle(e);
+    	})
+    	lambertMrFolder.addColor(lambertMrContr, 'ambient').onChange(function(e){
+    		meshMaterial.ambient = new THREE.Color(e);
+    	})
+    	lambertMrFolder.addColor(lambertMrContr, 'emissive').onChange(function(e){
+    		meshMaterial.emissive = new THREE.Color(e);
+    	})
+    	lambertMrFolder.add(lambertMrContr, 'wrapAround').onChange(function(e){
+    		meshMaterial.wrapAround = e;
+    		meshMaterial.needsUpdate = true;
+    	})
+    	lambertMrFolder.add(lambertMrContr, 'wrapR', 0, 1).step(0.01).onChange(function(e){
+    		meshMaterial.wrapRGB.x = e;
+    	})
+    	lambertMrFolder.add(lambertMrContr, 'wrapG', 0, 1).step(0.01).onChange(function(e){
+    		meshMaterial.wrapRGB.y = e;
+    	})
+    	lambertMrFolder.add(lambertMrContr, 'wrapB', 0, 1).step(0.01).onChange(function(e){
+    		meshMaterial.wrapRGB.z = e;
+    	})
+    	/**
+    	 * ///////////////////////////////////////////////////////////////
+    	 * face材质
+    	 * ///////////////////////////////////////////////////////////////
+    	 */
+    	phongMrFolder = gui.addFolder("4.PhongMaterial");
+    	phongMrFolder.add(phongMrContr, 'opacity', 0, 1).onChange(function(e){
+    		meshMaterial.opacity = e;
+    	})
+    	phongMrFolder.add(phongMrContr, 'transparent').onChange(function(e){
+    		meshMaterial.transparent = e;
+    	})
+    	phongMrFolder.add(phongMrContr, 'visible').onChange(function(e){
+    		meshMaterial.visible = e;
+    	})
+    	phongMrFolder.add(phongMrContr, 'side', ["front", "back", "double"]).onChange(function(e){
+    		switch(e){
+    			case "front":
+    				meshMaterial.side = THREE.FrontSide;
+    				break;
+    			case "back":
+    				meshMaterial.side = THREE.BackSide;
+    				break;
+    			case "double":
+    				meshMaterial.side = THREE.DoubleSide;
+    				break;	
+    		}
+    		// 对于材质中某些属性的更改需要将该属性设为true
+    		meshMaterial.needsUpdate = true;
+    	})
+    	phongMrFolder.addColor(phongMrContr, 'color').onChange(function(e){
+    		// 更换材质颜色
+    		meshMaterial.color.setStyle(e);
+    	})
+    	phongMrFolder.addColor(phongMrContr, 'ambient').onChange(function(e){
+    		meshMaterial.ambient = new THREE.Color(e);
+    	})
+    	phongMrFolder.addColor(phongMrContr, 'emissive').onChange(function(e){
+    		meshMaterial.emissive = new THREE.Color(e);
+    	})
+    	phongMrFolder.add(phongMrContr, 'wrapAround').onChange(function(e){
+    		meshMaterial.wrapAround = e;
+    		meshMaterial.needsUpdate = true;
+    	})
+    	phongMrFolder.add(phongMrContr, 'wrapR', 0, 1).step(0.01).onChange(function(e){
+    		meshMaterial.wrapRGB.x = e;
+    	})
+    	phongMrFolder.add(phongMrContr, 'wrapG', 0, 1).step(0.01).onChange(function(e){
+    		meshMaterial.wrapRGB.y = e;
+    	})
+    	phongMrFolder.add(phongMrContr, 'wrapB', 0, 1).step(0.01).onChange(function(e){
+    		meshMaterial.wrapRGB.z = e;
+    	})
+    	phongMrFolder.addColor(phongMrContr, 'specular').onChange(function(e){
+    		meshMaterial.specular = new THREE.Color(e);
+    	})
+    	phongMrFolder.add(phongMrContr, 'shininess', 0, 200).onChange(function(e){
+    		meshMaterial.shininess = e;
+    	})
+    	phongMrFolder.add(phongMrContr, 'metal').onChange(function(e){
+    		meshMaterial.metal = e;
+    		meshMaterial.needsUpdate = true;
+    	})
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+
+    	// 旋转立方体
+    	cube.rotation.y += controls.rotationSpeed;
+    	sphere.rotation.y += controls.rotationSpeed;
+    	square.rotation.y += controls.rotationSpeed;
+    
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+    /**
+     * 创建网格对象
+     * @return {[type]} [description]
+     */
+    function createMeshObjects(){
+    	// 创建立方体
+			var cubeGeometry = new THREE.BoxGeometry( 14, 14, 14 );
+			cube = new THREE.Mesh( cubeGeometry, meshMaterial );
+			cube.castShadow = true; // 投射阴影
+			cube.position.x = 0;
+			cube.position.y = 3;
+			cube.position.z = 2;
+
+			// 创建球体
+			var sphereGeometry = new THREE.SphereGeometry( 14, 20, 20 );
+			sphere = new THREE.Mesh( sphereGeometry, meshMaterial );
+			sphere.castShadow = true;
+			sphere.position = cube.position;
+
+			// 创建平面
+			var squareGeometry = new THREE.PlaneBufferGeometry( 14, 14, 4, 4 );
+			square = new THREE.Mesh( squareGeometry, meshMaterial );
+			square.castShadow = true;
+			square.position = cube.position;
+    }
+
+    /**
+     * 选择加入场景的对象
+     * @param  {[type]} type [description]
+     * @return {[type]}      [description]
+     */
+    function switchAddObject(type){
+    	switch(type){
+				case "cube":
+					scene.add(cube);
+					break;
+				case "sphere":
+					scene.add(sphere);
+					break;
+				case "square":
+					scene.add(square);
+					break;		
+			}
+    }
+
+    /**
+     * 清空场景中的网格对象
+     * @return {[type]} [description]
+     */
+    function removeSceneMeshs(){
+  		scene.remove(cube);
+  		scene.remove(sphere);
+  		scene.remove(square);
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = -30;
+			camera.position.y = 30;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+
+			// 创建webGL渲染器
+			webGLRenderer = new THREE.WebGLRenderer();
+			// 擦除背景色
+			webGLRenderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			webGLRenderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			webGLRenderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 创建canvas渲染器
+			canvasRenderer = new THREE.CanvasRenderer();
+			canvasRenderer.setSize(window.innerWidth, window.innerHeight);
+
+			// 这里默认设置webGL渲染
+			renderer = webGLRenderer;
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+			// 创建地面
+			var planeGeometry = new THREE.PlaneBufferGeometry( 100, 100, 20, 20 ); // 几何体类型对象
+			var planeMaterial = new THREE.MeshLambertMaterial( {color: 0xFFFFFF} ); // 材质对象
+			plane = new THREE.Mesh( planeGeometry, planeMaterial ); // 创建网格
+			plane.receiveShadow = true; // 接收阴影
+			// 旋转并设置位置
+			plane.rotation.x = -0.5 * Math.PI; // x轴旋转-90
+			plane.position.x = 15;
+			plane.position.y = -15;
+			plane.position.z = 0;
+			// 加入至场景
+			scene.add(plane);
+
+			// 创建公共材质(默认basic材质)
+			meshMaterial = new THREE.MeshBasicMaterial({color: 0x7777FF})
+
+			// 创建网格对象
+			createMeshObjects();
+			// 默认仅加载立方体, 其他控制加载
+			scene.add(cube);
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(-40, 60, -10);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			// 配置控制器
+			initControler();
+			// 开始渲染
+			render();
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>

@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var plane, circle, shape, ring, cube, sphere, cylinder, torus, torusKnot, polyhedron;
+		// 对象类型
+		var OBJ_TYPE = {
+			PLANE: 1,
+			CIRCLE: 2,
+			SHAPE: 3,
+			RING: 4,
+			CUBE: 5,
+			SPHERE: 6,
+			CYLINDER: 7,
+			TORUS: 8,
+			TORUS_KNOT: 9,
+			POLYHEDRON: 10
+		}
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls, 
+    		planeContr, 
+    		circleContr,
+    		shapeContr,
+    		ringContr,
+    		cubeContr, 
+    		sphereContr,
+    		cylinderContr,
+    		torusContr,
+    		torusKnotContr,
+    		polyhedronContr;
+    var planeFolder, 
+    		circleFolder, 
+    		shapeFolder, 
+    		ringFolder, 
+    		cubeFolder, 
+    		sphereFolder,
+    		cylinderFolder,
+    		torusFolder,
+    		torusKnotFolder,
+    		polyhedronFolder;
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.01; // 旋转速度
+	      this.geometryType = OBJ_TYPE.PLANE;
+	    };
+	    planeContr = new function () {
+	    	this.width = 10; // 矩形宽度
+	    	this.height = 10; // 矩形高度
+	    	this.widthSegments = 4; // 宽度切割的段数
+	    	this.heightSegments = 4; // 高度切割的段数
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		plane = createMesh(new THREE.PlaneBufferGeometry(
+	    			planeContr.width,
+	    			planeContr.height,
+	    			Math.round(planeContr.widthSegments), // 必须为整数
+	    			Math.round(planeContr.heightSegments)
+	    		))
+	    		scene.add(plane)
+	    	}
+	    }
+	    circleContr = new function(){
+	    	this.radius = 4; // 半径
+	    	this.segments = 10; // 分段
+	    	this.thetaStart = 0.3 * Math.PI; // 从何处开始画圆 (0, 2π)
+	    	this.thetaLength = 2.0 * Math.PI; // 画多少弧度的圆, 默认2π
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		circle = createMesh(new THREE.CircleGeometry(
+	    			circleContr.radius,
+	    			Math.round(circleContr.segments), // 必须为整数
+	    			circleContr.thetaStart,
+	    			circleContr.thetaLength
+	    		))
+	    		scene.add(circle)
+	    	}
+	    }
+	    shapeContr = new function(){
+	    	// 渲染成几何体
+	    	this.renderAsGeometry = function(){
+	    		removeObjects();
+	    		shape = createMesh(new THREE.ShapeGeometry(drawShape()));
+	    		shape.position.y = -10;
+	    		shape.scale.set(0.5, 0.5, 0.5);
+	    		scene.add(shape);
+	    	}
+	    	// 渲染成点集
+	    	this.renderAsPoints = function(){
+	    		removeObjects();
+	    		shape = createLineMesh(drawShape(), false);
+	    		shape.scale.set(0.5, 0.5, 0.5);
+	    		shape.position.y = -10;
+	    		scene.add(shape);
+	    	}
+	    	// 渲染成带空隙的点集
+	    	// this.renderAsSpacedPoints = function(){
+	    	// 	removeObjects();
+	    	// 	shape = createLineMesh(drawShape(), true);
+	    	// 	scene.add(shape);
+	    	// }
+	    }
+	    ringContr = new function(){
+	    	this.innerRadius = 0; // 内圆半径
+	    	this.outerRadius = 50; // 外圆半径
+	    	this.thetaSegments = 8; // 每一层的分割数, 影响光滑程度
+	    	this.phiSegments = 8; // 分割层数，最少1层，可增加面数
+	    	this.thetaStart = 0; // 从何处开始画圆 (0, 2π)
+	    	this.thetaLength = 2.0 * Math.PI; // 画多少弧度的圆, 默认2π
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		ring = createMesh(new THREE.RingGeometry(
+	    			ringContr.innerRadius,
+	    			ringContr.outerRadius,
+	    			Math.round(ringContr.thetaSegments), // 必须为整数
+	    			Math.round(ringContr.phiSegments), // 必须为整数
+	    			ringContr.thetaStart,
+	    			ringContr.thetaLength
+	    		))
+	    		scene.add(ring)
+	    	}
+	    }
+	    cubeContr = new function(){
+	    	this.width = 10; // 宽
+	    	this.height = 10; // 高
+	    	this.depth = 10; // 长
+	    	this.widthSegments = 1;
+	    	this.heightSegments = 1;
+	    	this.depthSegments = 1;
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		cube = createMesh(new THREE.BoxGeometry(
+	    			cubeContr.width,
+	    			cubeContr.height,
+	    			cubeContr.depth,
+	    			Math.round(cubeContr.widthSegments), // 必须为整数
+	    			Math.round(cubeContr.heightSegments), // 必须为整数
+	    			Math.round(cubeContr.depthSegments), // 必须为整数
+	    		))
+	    		scene.add(cube)
+	    	}
+	    }
+	    sphereContr = new function(){
+	    	this.radius = 4; // 半径
+	    	this.widthSegments = 8; // 经度分割数，最小值为3
+	    	this.heightSegments = 6; // 纬度分割数， 最小值为2
+	    	this.phiStart = 0; // 沿x轴何处开始绘制，范围为2π
+	    	this.phiLength = 2*Math.PI; // 画多少弧度的圆, 默认2π
+	    	this.thetaStart = 0; // 沿y轴何处开始绘制，范围为π
+	    	this.thetaLength = Math.PI; // 绘制多少弧度，默认π
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		sphere = createMesh(new THREE.SphereGeometry(
+	    			sphereContr.radius,
+	    			Math.round(sphereContr.widthSegments), // 必须为整数
+	    			Math.round(sphereContr.heightSegments), // 必须为整数
+	    			sphereContr.phiStart,
+	    			sphereContr.phiLength,
+	    			sphereContr.thetaStart,
+	    			sphereContr.thetaLength,
+	    		))
+	    		scene.add(sphere)
+	    	}
+	    }
+	    cylinderContr = new function(){
+	    	this.radiusTop = 4; // 圆柱体顶端半径，默认20
+	    	this.radiusBottom = 5; // 底部半径，默认20
+	    	this.height = 10; // 高, 默认100
+	    	this.radialSegments = 8; // 圆分割数
+	    	this.heightSegments = 1; // 竖直方向分割数
+	    	this.openEnded = false; // 是否打开上下两个面
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		cylinder = createMesh(new THREE.CylinderGeometry(
+	    			cylinderContr.radiusTop,
+	    			cylinderContr.radiusBottom,
+	    			cylinderContr.height,
+	    			Math.round(cylinderContr.radialSegments), // 必须为整数
+	    			Math.round(cylinderContr.heightSegments), // 必须为整数
+	    			cylinderContr.openEnded,
+	    		))
+	    		scene.add(cylinder)
+	    	}
+	    }
+	    torusContr = new function(){
+	    	this.radius = 10; // 整个圆环的半径，默认100
+	    	this.tube = 6; // 圆环内管道直径，默认40
+	    	this.radialSegments = 8; // 管道边圆的划分数
+	    	this.tubularSegments = 6; // 管道数(直)
+	    	this.arc = 2*Math.PI; // 环绕的弧度，默认2π
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		torus = createMesh(new THREE.TorusGeometry(
+	    			torusContr.radius,
+	    			torusContr.tube,
+	    			Math.round(torusContr.radialSegments), // 必须为整数
+	    			Math.round(torusContr.tubularSegments), // 必须为整数
+	    			torusContr.arc,
+	    		))
+	    		scene.add(torus)
+	    	}
+	    }
+	    torusKnotContr = new function(){
+	    	this.radius = 10; // 整个扭结的半径，默认100
+	    	this.tube = 2; // 管道直径，默认40
+	    	this.radialSegments = 64; // 管道数(直)，默认64
+	    	this.tubularSegments = 8; // 管道边圆的划分数，默认8
+	    	// 通过调节这两个参数可以绘制出各种有趣形态的扭结体，可通过试验来想要的几何体
+	    	this.p = 2; 
+	    	this.q = 2;
+	    	this.heightScale = 1; // 伸展整个扭结
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		torusKnot = createMesh(new THREE.TorusKnotGeometry(
+	    			torusKnotContr.radius,
+	    			torusKnotContr.tube,
+	    			Math.round(torusKnotContr.radialSegments), // 必须为整数
+	    			Math.round(torusKnotContr.tubularSegments), // 必须为整数
+	    			Math.round(torusKnotContr.p), // 必须为整数
+	    			Math.round(torusKnotContr.q), // 必须为整数
+	    			torusKnotContr.heightScale,
+	    		))
+	    		scene.add(torusKnot)
+	    	}
+	    }
+	    polyhedronContr = new function(){
+	    	this.radius = 10; // 多面体的大小
+	    	// 给多面体添加额外的细节，
+	    	// 1：每个三角形都会分成4个小三角形
+	    	// 2：继承1的特性，每个小三角形再分成4个小三角形
+	    	// 往下如此类推
+        this.detail = 0; 
+        this.type = 'Icosahedron'; // 标识特定的多面体类型,默认正20面体
+        this.reDrawMesh = function(){
+        	removeObjects();
+        	switch(polyhedronContr.type){
+        		case "Icosahedron":
+        			polyhedron = createMesh(new THREE.IcosahedronGeometry( polyhedronContr.radius, polyhedronContr.detail ));
+        			scene.add(polyhedron)
+        			break;
+        		case "Tetrahedron":
+        			polyhedron = createMesh(new THREE.TetrahedronGeometry( polyhedronContr.radius, polyhedronContr.detail ));
+        			scene.add(polyhedron)
+        			break;
+        		case "Octahedron":
+        			polyhedron = createMesh(new THREE.OctahedronGeometry( polyhedronContr.radius, polyhedronContr.detail ));
+        			scene.add(polyhedron)
+        			break;
+        		case "Dodecahedron":
+        			polyhedron = createMesh(new THREE.DodecahedronGeometry( polyhedronContr.radius, polyhedronContr.detail ));
+        			scene.add(polyhedron)
+        			break;
+        		case "Custom":
+        			var vertices = [
+        				1, 1, 1, 
+        				-1, -1, 1, 
+        				-1, 1, -1, 
+        				1, -1, -1
+        			];
+        			var indices = [
+        				2, 1, 0, 
+        				0, 3, 2, 
+        				1, 3, 0, 
+        				2, 3, 1
+        			];
+        			polyhedron = createMesh(new THREE.PolyhedronGeometry( vertices, indices, polyhedronContr.radius, polyhedronContr.detail ));
+        			scene.add(polyhedron)
+        			break;				
+        	}
+        }
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.add(controls, 'geometryType', {
+    		plane: OBJ_TYPE.PLANE,
+    		circle: OBJ_TYPE.CIRCLE,
+    		shape: OBJ_TYPE.SHAPE,
+    		ring: OBJ_TYPE.RING,
+    		cube: OBJ_TYPE.CUBE,
+    		sphere: OBJ_TYPE.SPHERE,
+    		cylinder: OBJ_TYPE.CYLINDER,
+    		torus: OBJ_TYPE.TORUS,
+    		torusKnot: OBJ_TYPE.TORUS_KNOT,
+    		polyhedron: OBJ_TYPE.POLYHEDRON
+    	}).onChange(function(e){
+    		removeObjects();
+    		closeAllFolder();
+    		createObject(e);
+    	})
+
+    	//-----------------------
+    	// plane 2d几何体模块
+    	//-----------------------
+    	planeFolder = gui.addFolder("1.Plane");
+    	planeFolder.add(planeContr, 'width', 0, 100).onChange(planeContr.reDrawMesh);
+    	planeFolder.add(planeContr, 'height', 0, 100).onChange(planeContr.reDrawMesh);
+    	planeFolder.add(planeContr, 'widthSegments', 0, 10).step(1).onChange(planeContr.reDrawMesh);
+    	planeFolder.add(planeContr, 'heightSegments', 0, 10).step(1).onChange(planeContr.reDrawMesh);
+
+    	//-----------------------
+    	// 圆形 2d几何体模块
+    	//-----------------------
+    	circleFolder = gui.addFolder("2.Circle");
+    	circleFolder.add(circleContr, 'radius', 0, 10).onChange(circleContr.reDrawMesh);
+    	circleFolder.add(circleContr, 'segments', 0, 100).step(1).onChange(circleContr.reDrawMesh);
+    	circleFolder.add(circleContr, 'thetaStart', 0, 2 * Math.PI).onChange(circleContr.reDrawMesh);
+    	circleFolder.add(circleContr, 'thetaLength', 0, 2 * Math.PI).onChange(circleContr.reDrawMesh);
+
+    	//-----------------------
+    	// 自定义线框 2d几何体模块
+    	//-----------------------
+    	shapeFolder = gui.addFolder("3.Shape");
+    	shapeFolder.add(shapeContr, 'renderAsGeometry');
+    	shapeFolder.add(shapeContr, 'renderAsPoints');
+    	// shapeFolder.add(shapeContr, 'renderAsSpacedPoints');
+
+    	//-----------------------
+    	// 圆环 2d几何体模块
+    	//-----------------------
+    	ringFolder = gui.addFolder("4.Ring");
+    	ringFolder.add(ringContr, 'innerRadius', 0, 10).onChange(ringContr.reDrawMesh);
+    	ringFolder.add(ringContr, 'outerRadius', 0, 100).onChange(ringContr.reDrawMesh);
+    	ringFolder.add(ringContr, 'thetaSegments', 0, 30).step(1).onChange(ringContr.reDrawMesh);
+    	ringFolder.add(ringContr, 'phiSegments', 0, 30).step(1).onChange(ringContr.reDrawMesh);
+    	ringFolder.add(ringContr, 'thetaStart', 0, 2 * Math.PI).onChange(ringContr.reDrawMesh);
+    	ringFolder.add(ringContr, 'thetaLength', 0, 2 * Math.PI).onChange(ringContr.reDrawMesh);
+
+    	//-----------------------
+    	// 立方体 3d几何体模块
+    	//-----------------------
+    	cubeFolder = gui.addFolder("5.Cube");
+    	cubeFolder.add(cubeContr, 'width', 0, 50).onChange(cubeContr.reDrawMesh);
+    	cubeFolder.add(cubeContr, 'height', 0, 50).onChange(cubeContr.reDrawMesh);
+    	cubeFolder.add(cubeContr, 'depth', 0, 50).onChange(cubeContr.reDrawMesh);
+    	cubeFolder.add(cubeContr, 'widthSegments', 0, 30).step(1).onChange(cubeContr.reDrawMesh);
+    	cubeFolder.add(cubeContr, 'heightSegments', 0, 30).step(1).onChange(cubeContr.reDrawMesh);
+    	cubeFolder.add(cubeContr, 'depthSegments', 0, 30).step(1).onChange(cubeContr.reDrawMesh);
+
+    	//-----------------------
+    	// 球体 3d几何体模块
+    	//-----------------------
+    	sphereFolder = gui.addFolder("6.Sphere");
+    	sphereFolder.add(sphereContr, 'radius', 0, 100).onChange(sphereContr.reDrawMesh);
+    	sphereFolder.add(sphereContr, 'widthSegments', 0, 30).step(1).onChange(sphereContr.reDrawMesh);
+    	sphereFolder.add(sphereContr, 'heightSegments', 0, 30).step(1).onChange(sphereContr.reDrawMesh);
+    	sphereFolder.add(sphereContr, 'phiStart', 0, 2 * Math.PI).onChange(sphereContr.reDrawMesh);
+    	sphereFolder.add(sphereContr, 'phiLength', 0, 4 * Math.PI).onChange(sphereContr.reDrawMesh);
+    	sphereFolder.add(sphereContr, 'thetaStart', 0, Math.PI).onChange(sphereContr.reDrawMesh);
+    	sphereFolder.add(sphereContr, 'thetaLength', 0, 4 * Math.PI).onChange(sphereContr.reDrawMesh);
+
+    	//-----------------------
+    	// 圆柱体 3d几何体模块
+    	//-----------------------
+    	cylinderFolder = gui.addFolder("7.Cylinder");
+    	cylinderFolder.add(cylinderContr, 'radiusTop', -40, 40).onChange(cylinderContr.reDrawMesh);
+    	cylinderFolder.add(cylinderContr, 'radiusBottom', -40, 40).onChange(cylinderContr.reDrawMesh);
+    	cylinderFolder.add(cylinderContr, 'height', 0, 50).onChange(cylinderContr.reDrawMesh);
+    	cylinderFolder.add(cylinderContr, 'radialSegments', 1, 20).step(1).onChange(cylinderContr.reDrawMesh);
+    	cylinderFolder.add(cylinderContr, 'heightSegments', 1, 20).step(1).onChange(cylinderContr.reDrawMesh);
+    	cylinderFolder.add(cylinderContr, 'openEnded').onChange(cylinderContr.reDrawMesh);
+
+    	//-----------------------
+    	// 圆环体 3d几何体模块
+    	//-----------------------
+    	torusFolder = gui.addFolder("8.Torus");
+    	torusFolder.add(torusContr, 'radius', 0, 40).onChange(torusContr.reDrawMesh);
+    	torusFolder.add(torusContr, 'tube', 0, 40).onChange(torusContr.reDrawMesh);
+    	torusFolder.add(torusContr, 'radialSegments', 1, 20).step(1).onChange(torusContr.reDrawMesh);
+    	torusFolder.add(torusContr, 'tubularSegments', 1, 20).step(1).onChange(torusContr.reDrawMesh);
+    	torusFolder.add(torusContr, 'arc', 0, 2 * Math.PI).onChange(torusContr.reDrawMesh);
+
+    	//-----------------------
+    	// 扭结体 3d几何体模块
+    	//-----------------------
+    	torusKnotFolder = gui.addFolder("9.TorusKnot");
+    	torusKnotFolder.add(torusKnotContr, 'radius', 0, 40).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'tube', 0, 4).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'radialSegments', 0, 400).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'tubularSegments', 1, 20).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'p', 1, 10).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'q', 1, 15).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'heightScale', 1, 5).onChange(torusKnotContr.reDrawMesh);
+
+    	//-----------------------
+    	// 多面体 3d几何体模块
+    	//-----------------------
+    	polyhedronFolder = gui.addFolder("10.Polyhedron");
+    	polyhedronFolder.add(polyhedronContr, 'radius', 0, 40).onChange(polyhedronContr.reDrawMesh);
+    	polyhedronFolder.add(polyhedronContr, 'detail', 0, 5).step(1).onChange(polyhedronContr.reDrawMesh);
+    	polyhedronFolder.add(polyhedronContr, 'type', 
+    		["Icosahedron", "Tetrahedron", "Octahedron", "Dodecahedron", "Custom"]
+    	).onChange(polyhedronContr.reDrawMesh);
+    }
+
+    /**
+		 * 移除可能存在的对象
+		 * @return {[type]} [description]
+		 */
+		function removeObjects(){
+			scene.remove(plane);
+			scene.remove(circle);
+			scene.remove(shape);
+			scene.remove(ring);
+			scene.remove(cube);
+			scene.remove(sphere);
+			scene.remove(cylinder);
+			scene.remove(torus);
+			scene.remove(torusKnot);
+			scene.remove(polyhedron);
+		}
+
+		/**
+		 * 创建对象
+		 * @param  {[type]} type [description]
+		 * @return {[type]}      [description]
+		 */
+		function createObject(type){
+			switch(parseInt(type)){
+				case OBJ_TYPE.PLANE:
+					plane = createMesh(new THREE.PlaneBufferGeometry( 10, 10, 4, 4 ));
+					scene.add(plane);
+					planeFolder.open();
+					break;
+				case OBJ_TYPE.CIRCLE:
+					circle = createMesh(new THREE.CircleGeometry( 4, 10, 0.3 * Math.PI, 2 * Math.PI ));
+					scene.add(circle);
+					circleFolder.open();
+					break;
+				case OBJ_TYPE.SHAPE:
+					shapeContr.renderAsGeometry();
+					shapeFolder.open();
+					break;	
+				case OBJ_TYPE.RING:
+					ring = createMesh(new THREE.RingGeometry());
+					scene.add(ring);
+					ringFolder.open();
+					break;
+				case OBJ_TYPE.CUBE:
+					cube = createMesh(new THREE.BoxGeometry(10, 10, 10, 1, 1, 1));
+					scene.add(cube);
+					cubeFolder.open();
+					break;
+				case OBJ_TYPE.SPHERE:
+					sphere = createMesh(new THREE.SphereGeometry(6, 10, 10));
+					scene.add(sphere);
+					sphereFolder.open();
+					break;
+				case OBJ_TYPE.CYLINDER:
+					cylinder = createMesh(new THREE.CylinderGeometry(4, 5, 10));
+					scene.add(cylinder);
+					cylinderFolder.open();
+					break;
+				case OBJ_TYPE.TORUS:
+					torus = createMesh(new THREE.TorusGeometry(10, 6));
+					scene.add(torus);
+					torusFolder.open();
+					break;
+				case OBJ_TYPE.TORUS_KNOT:
+					torusKnot = createMesh(new THREE.TorusKnotGeometry(10, 2));
+					scene.add(torusKnot);
+					torusKnotFolder.open();
+					break;
+				case OBJ_TYPE.POLYHEDRON:
+					polyhedron = createMesh(new THREE.IcosahedronGeometry(10, 0));
+					scene.add(polyhedron);
+					polyhedronFolder.open();
+					break;	
+			}
+		}
+
+		function closeAllFolder(){
+			planeFolder.close();
+    	circleFolder.close();
+    	shapeFolder.close();
+    	ringFolder.close();
+    	cubeFolder.close();
+    	sphereFolder.close();
+    	cylinderFolder.close();
+    	torusFolder.close();
+    	torusKnotFolder.close();
+    	polyhedronFolder.close();
+		}
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	// 旋转
+    	scene.traverse(function(e){
+    		if(e instanceof THREE.Mesh){
+    			e.rotation.y += controls.rotationSpeed;
+    		}
+    	})
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = -30;
+			camera.position.y = 30;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+      // 配置控制器
+			initControler();
+
+      // 默认创建平面
+			createObject(OBJ_TYPE.PLANE);
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(-40, 60, -10);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 绘制自定义框型几何
+		 * @return {[type]} [description]
+		 */
+		function drawShape(){
+			var shape = new THREE.Shape();
+			// 设置初始绘制位置
+			shape.moveTo(10, 10);
+			// 设置下一个点的位置并连接起点
+			shape.lineTo(10, 40);
+			// 紧接着绘制一条贝塞尔曲线(分三个点，两个定端点和终点，具体参考实际绘制方式)
+			shape.bezierCurveTo(15,25, 25,25, 30,40);
+			// 接下来根据提供的点集绘制一条光滑的曲线, 参数数组类型为vec2
+			shape.splineThru([new THREE.Vector2( 32, 30 ), new THREE.Vector2( 28, 20 ), new THREE.Vector2( 30, 10 )]);
+			// 最后用二次曲线封闭这个图形(起始点，定端点，具体参考实际绘制方式)
+			shape.quadraticCurveTo(20,15, 10,10);
+			// 另外给这个图形添加内部轨迹, 图案中的其中一只眼睛
+			var hole1 = new THREE.Path();
+			// 设置椭圆（椭圆中心，x、y轴的半径，开始、结束角度，是否顺时针(默认false,即逆时针）
+			hole1.absellipse(16,24, 2,3, 0,2*Math.PI, true);
+			// 将轨迹设置为之前的线框的内部线框
+			shape.holes.push(hole1);
+			// 创建另一只眼睛
+			var hole2 = new THREE.Path();
+			hole2.absellipse(23,24, 2,3, 0,2*Math.PI, true);
+			shape.holes.push(hole2);
+			// 创建嘴
+			var hole3 = new THREE.Path();
+			// 设置圆弧（圆弧中心，半径，开始、结束角度，是否顺时针默认false）
+			hole3.absarc(20,16, 2, 0,Math.PI, true);
+			shape.holes.push(hole3);
+
+			return shape;
+		}
+
+		/**
+		 * 创建点集线网格对象
+		 * @param  {[type]} shape  [description]
+		 * @param  {[type]} spaced [description]
+		 * @return {[type]}        [description]
+		 */
+		function createLineMesh(shape, spaced){
+			if(!spaced){
+				var mesh = new THREE.Line(
+					shape.createPointsGeometry(10), // 点集几何
+					new THREE.LineBasicMaterial( {color: 0x000000, linewidth: 3} )
+					);
+				return mesh;
+			}else{
+				var mesh = new THREE.Line(
+					shape.createSpacedPointsGeometry(3), // 点集几何
+					new THREE.LineBasicMaterial( {color: 0x000000, linewidth: 2} )
+					);
+				return mesh;
+			}
+		}
+
+		/**
+		 * 创建网格对象
+		 * @param  {[type]} geometry [description]
+		 * @return {[type]}          [description]
+		 */
+		function createMesh(geometry){
+			// 创建法向量材质
+			var normalMaterial = new THREE.MeshNormalMaterial();
+			normalMaterial.side = THREE.DoubleSide;
+			// 创建基础材质
+			var basicMaterial = new THREE.MeshBasicMaterial();
+			// 开启网格模式
+			basicMaterial.wireframe = true;
+			// 组合两种材质
+			var mesh = THREE.SceneUtils.createMultiMaterialObject( 
+				geometry,
+				[normalMaterial, basicMaterial]
+			);
+			return mesh;
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>

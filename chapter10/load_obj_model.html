@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>webgl test</title>
+	<style type="text/css">
+		body{
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+</head>
+<body onload="main()">
+	<canvas id="example" width="400" height="400">no support canvas</canvas>
+
+	<script type="text/javascript" src="../lib/webgl-utils.js"></script>
+	<script type="text/javascript" src="../lib/webgl-debug.js"></script>
+	<script type="text/javascript" src="../lib/cuon-utils.js"></script>
+	<script type="text/javascript" src="../lib/cuon-matrix.js"></script>
+	<!-- <script type="text/javascript" src="../lib/loadShaderFile.js"></script> -->
+	<script type="text/javascript" src="js/obj-mtl-parse.js"></script>
+	
+	<script type="text/javascript">
+
+		var VSSHADER_SOURCE = null,
+				FSHADER_SOURCE = null;
+
+		var canvas = null;
+
+		function load_shader(gl, fileName, shaderType){
+			var request = new XMLHttpRequest();
+			request.onreadystatechange = function(){
+				if(request.readyState === 4 && request.status !== 404){
+					if(shaderType == gl.VERTEX_SHADER) VSSHADER_SOURCE = request.responseText;
+					if(shaderType == gl.FRAGMENT_SHADER) FSHADER_SOURCE = request.responseText;
+					getShaderSource(gl);
+				}
+			}
+			request.open('GET', fileName, true);
+			request.send();
+		}
+
+		function getShaderSource(gl){
+			if(VSSHADER_SOURCE && FSHADER_SOURCE){
+				init(gl);
+			}
+		}
+
+		function init(gl){
+			if(!initShaders(gl, VSSHADER_SOURCE, FSHADER_SOURCE)){
+				console.log('Failed to intialize shaders.');
+    		return;
+			}
+
+			gl.clearColor(0.0, 0.0, 0.0, 1.0);
+			gl.enable(gl.DEPTH_TEST);
+
+			var program = gl.program;
+			program.a_Position = gl.getAttribLocation(program, 'a_Position');
+			program.a_Normal = gl.getAttribLocation(program, 'a_Normal');
+			program.a_Color = gl.getAttribLocation(program, 'a_Color');
+
+			program.u_MVPMatrix = gl.getUniformLocation(program, 'u_MVPMatrix');
+			program.u_NormalMatrix = gl.getUniformLocation(program, 'u_NormalMatrix');
+			program.u_LightDirection = gl.getUniformLocation(program, 'u_LightDirection');
+
+			// 准备空的缓冲区对象给顶点坐标、颜色和法线
+			var model = initVertexBuffers(gl, program);
+			if (!model) {
+			  console.log('Failed to set the vertex information');
+			  return;
+			}
+
+			// 投影视图矩阵
+			var viewProjMatrix = new Matrix4();
+			viewProjMatrix.setPerspective(30.0, canvas.width / canvas.height, 1.0, 5000.0);
+			viewProjMatrix.lookAt(0.0, 500.0, 200.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+
+			// 读取obj文件数据
+			readObjFile(gl, 'res/cube.obj', model, 60, true);
+
+			var currentAngle = [0.0, 0.0]; // [绕x轴旋转角度，绕y轴旋转角度]
+			initEventHandlers(canvas, currentAngle);
+
+			var tick = function(){
+				draw(gl, program, currentAngle, viewProjMatrix, model);
+				requestAnimationFrame(tick, canvas);
+			}
+			tick();
+		}
+
+		// 初始化鼠标拖拽事件
+		function initEventHandlers(canvas, currentAngle){
+			// 默认不拖拽
+			var dragging = false;
+			// 初始化鼠标最终移动位置坐标
+			var lastX = -1, lastY = -1;
+
+			// 鼠标按下时
+			canvas.onmousedown = function(e){
+				var x = e.clientX, y = e.clientY;
+				// 鼠标在canvas内拖动, 获取canvas当前坐标数据
+				var rect = e.target.getBoundingClientRect();
+				// 锁定canvas范围内
+				if(rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom){
+					lastX = x; lastY = y;
+					dragging = true;
+				}
+			}
+			// 鼠标移动时
+			canvas.onmousemove = function(e){
+				var x = e.clientX, y = e.clientY;
+				if(dragging){
+					var factor = 100 / canvas.height; // 旋转因子 
+					var dx = factor * (x - lastX);
+					var dy = factor * (y - lastY);
+					// 控制Y轴旋转角度在-90至90度之间，防止万向锁问题
+					currentAngle[0] = Math.max(Math.min(currentAngle[0] + dy, 90.0), -90.0);
+					currentAngle[1] = currentAngle[1] + dx;
+				}
+				lastX = x, lastY = y;
+			}
+			// 鼠标弹起时
+			canvas.onmouseup = function(e) { dragging = false;  };
+		}
+
+		// 记录立方体的变换矩阵
+		var g_modelMatrix = new Matrix4();
+		var g_mvpMatrix = new Matrix4();
+		var g_normalMatrix = new Matrix4();
+		// 绘制图形
+		function draw(gl, program, angle, viewProjMatrix, model){
+			// 判断obj和材质是否都加载配置完成
+			if(g_objDoc!=null && g_objDoc.isMtlComplete()){ 
+				g_drawingInfo = onReadComplete(gl, model, g_objDoc); // 数据绑定完成
+				g_objDoc = null; // 清空文本信息释放内存
+			}
+
+			// 数据没有加载完成或出错
+			if(!g_drawingInfo) {
+				return;
+			}
+
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+			g_modelMatrix.setRotate(angle[0], 1.0, 0.0, 0.0);
+			g_modelMatrix.rotate(angle[1], 0.0, 1.0, 0.0);
+			// g_modelMatrix.rotate(angle, 0.0, 0.0, 1.0);
+
+			g_normalMatrix.setInverseOf(g_modelMatrix);
+			g_normalMatrix.transpose();
+			gl.uniformMatrix4fv(program.u_NormalMatrix, false, g_normalMatrix.elements);
+
+			g_mvpMatrix.set(viewProjMatrix);
+			g_mvpMatrix.multiply(g_modelMatrix);
+			gl.uniformMatrix4fv(program.u_MVPMatrix, false, g_mvpMatrix.elements);
+
+			// 设置灯光方向
+			var lightDirection = new Float32Array([-0.35, 0.35, 0.87]);
+			gl.uniform3fv(program.u_LightDirection, lightDirection);
+
+			gl.drawElements(gl.TRIANGLES, g_drawingInfo.indices.length, gl.UNSIGNED_SHORT, 0);
+		}
+
+		// 创建缓冲区对象并执行初始化配置
+		function initVertexBuffers(gl, program){
+			var obj = new Object();
+			obj.vertexBuffer = createEmptyArrayBuffer(gl, program.a_Position, 3, gl.FLOAT);
+			obj.colorBuffer = createEmptyArrayBuffer(gl, program.a_Color, 4, gl.FLOAT);
+			obj.normalBuffer = createEmptyArrayBuffer(gl, program.a_Normal, 3, gl.FLOAT);
+			obj.indexBuffer = gl.createBuffer();
+			if(!obj.vertexBuffer || !obj.colorBuffer || !obj.normalBuffer || !obj.indexBuffer) return null;
+
+			return obj;
+		}
+
+		// 创建空的缓冲对象并分配激活属性变量
+		function createEmptyArrayBuffer(gl, a_attribute, num, type){
+			var buffer = gl.createBuffer();
+			if (!buffer) {
+			  console.log('Failed to create the buffer object');
+			  return null;
+			}
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
+			gl.enableVertexAttribArray(a_attribute);
+			return buffer;
+		}
+
+		// 读取obj模型文件
+		function readObjFile(gl, fileName, model, scale, reverse){
+			var request = new XMLHttpRequest();
+			request.onreadystatechange = function(){
+				if(request.readyState === 4 && request.status !== 404){
+					onReadObjFile(request.responseText, fileName, gl, model, scale, reverse);
+				}
+			}
+			request.open('GET', fileName, true); // 创建请求
+			request.send(); // 发起请求
+		}
+
+		// obj文件中的文本
+		var g_objDoc = null; 
+		// 用于绘制三维模型的信息
+		var g_drawingInfo = null;
+
+		// 完成对obj文件的读取
+		function onReadObjFile(fileString, fileName, gl, obj, scale, reverse){
+			var objDoc = new ObjDoc(fileName); // 创建一个ObjDoc对象
+			var result = objDoc.parse(fileString, scale, reverse);
+			if(!result){
+				g_objDoc = null;
+				g_drawingInfo = null;
+				console.log("OBJ file parsing error.");
+				return;
+			}
+			g_objDoc = objDoc;
+		}
+
+		// 读取完成
+		function onReadComplete(gl, model, objDoc){
+			// 获取模型所有数据
+			var drawInfo = objDoc.getDrawInfo();
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, model.vertexBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, drawInfo.vertices, gl.STATIC_DRAW);
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, model.normalBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, drawInfo.normals, gl.STATIC_DRAW);
+
+			gl.bindBuffer(gl.ARRAY_BUFFER, model.colorBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, drawInfo.colors, gl.STATIC_DRAW);
+
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indexBuffer);
+			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, drawInfo.indices, gl.STATIC_DRAW);
+
+			return drawInfo;
+		}
+
+		function main() {
+			canvas = document.getElementById("example");
+			if(!canvas){
+				console.log("no read element");
+				return;
+			}
+			
+			var gl = getWebGLContext(canvas);
+			if (!gl) {
+				console.log('no read rendering context for webgl');
+				return;
+			}
+
+			load_shader(gl, 'shader/load_obj_model.vs', gl.VERTEX_SHADER);
+			load_shader(gl, 'shader/load_obj_model.fs', gl.FRAGMENT_SHADER);
+
+		}
+	</script>
+</body>
+</html>

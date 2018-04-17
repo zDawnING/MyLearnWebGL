@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>webgl test</title>
+	<style type="text/css">
+		body{
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+</head>
+<body onload="main()">
+	<canvas id="example" width="400" height="400">no support canvas</canvas>
+
+	<p>
+    <button type="button" onclick="up()">UP</button>
+    <button type="button" onclick="down()">DOWN</button>
+  </p>
+	
+	<script type="text/javascript" src="../lib/webgl-utils.js"></script>
+	<script type="text/javascript" src="../lib/webgl-debug.js"></script>
+	<script type="text/javascript" src="../lib/cuon-utils.js"></script>
+	<script type="text/javascript" src="../lib/cuon-matrix.js"></script>
+	<!-- <script type="text/javascript" src="../lib/loadShaderFile.js"></script> -->
+	
+	<script type="text/javascript">
+
+		var VSSHADER_SOURCE = null,
+				FSHADER_SOURCE = null;
+
+		var canvas = null;
+
+		function load_shader(gl, fileName, shaderType){
+			var request = new XMLHttpRequest();
+			request.onreadystatechange = function(){
+				if(request.readyState === 4 && request.status !== 404){
+					if(shaderType == gl.VERTEX_SHADER) VSSHADER_SOURCE = request.responseText;
+					if(shaderType == gl.FRAGMENT_SHADER) FSHADER_SOURCE = request.responseText;
+					getShaderSource(gl);
+				}
+			}
+			request.open('GET', fileName, true);
+			request.send();
+		}
+
+		function getShaderSource(gl){
+			if(VSSHADER_SOURCE && FSHADER_SOURCE){
+				init(gl);
+			}
+		}
+
+		var ANGLE = 45; // 旋转90度
+		var Tx = 0.5, Ty = 0.5, Tz = 0.0; // 平移距离
+		var Sx = 1.0, Sy = 1.5, Sz = 1.0; // 缩放形变
+
+		function init(gl){
+			if(!initShaders(gl, VSSHADER_SOURCE, FSHADER_SOURCE)){
+				console.log('Failed to intialize shaders.');
+    		return;
+			}
+
+			var n = initVertexBuffers(gl);
+
+			if(n < 0){
+				console.log("failed to set vertices");
+				return;
+			}
+			// 创建模型矩阵
+			var modelMatrix = new Matrix4();
+
+			var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+
+			gl.clearColor(0.0, 0.0, 0.0, 1.0);
+			
+			// 记录当前旋转角度
+			var currentAngle = 0;
+			// 创建循环执行函数
+			var tick = function(){
+				currentAngle = animate(currentAngle);
+				draw(gl, n, currentAngle, modelMatrix, u_ModelMatrix);
+				requestAnimationFrame(tick);
+			}
+			// 调用循环
+			tick();
+		}
+
+		// 重复绘制
+		function draw(gl, n, currentAngle, modelMatrix, u_ModelMatrix){
+			modelMatrix.setRotate(currentAngle, 0, 0, 1);
+			modelMatrix.translate(0.5, 0, 0);
+			gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+
+			gl.clear(gl.COLOR_BUFFER_BIT);
+			gl.drawArrays(gl.TRIANGLES, 0, n);
+		}
+
+		// 记录最后一次的的调用时间, 默认先初始化
+		var g_last = Date.now();
+		// 角度变化
+		function animate(angle){
+			var now = Date.now();
+			var elapsed = now - g_last; // 消逝的时间
+			g_last = now;
+			// 更新当前旋转角度
+			var newAngle = angle + (ANGLE * (elapsed / 1000));
+			// 限制角度在360以内
+			return newAngle %= 360;
+		}
+
+		// 加快旋转速度
+		function up(){
+			ANGLE += 10;
+		}
+		// 降低旋转速度
+		function down(){
+			ANGLE -= 10;
+		}
+
+		function initVertexBuffers(gl){
+			var vertices = new Float32Array([
+				0.0, 0.5, -0.5, -0.5, 0.5, -0.5
+				]);
+			var n = 3;
+
+			// 创建缓冲区对象
+			var vertexBuffer = gl.createBuffer();
+			if(!vertexBuffer) {
+				console.log('not create buffer object');
+				return;
+			}
+			// 将缓冲区对象绑定到目标
+			gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+
+			var a_Position = gl.getAttribLocation(gl.program, 'a_Position');
+			
+			// 将缓冲区对象分配给插槽
+			gl.vertexAttribPointer(a_Position, 2, gl.FLOAT, false, 0, 0);
+			// 连接插槽变量与分配给它的缓冲区对象
+			gl.enableVertexAttribArray(a_Position);
+
+			return n;
+		}
+
+		function main() {
+			canvas = document.getElementById("example");
+			if(!canvas){
+				console.log("no read element");
+				return;
+			}
+			
+			var gl = getWebGLContext(canvas);
+			if (!gl) {
+				console.log('no read rendering context for webgl');
+				return;
+			}
+
+			load_shader(gl, 'shader/rotate_translate.vs', gl.VERTEX_SHADER);
+			load_shader(gl, 'shader/rotate_translate.fs', gl.FRAGMENT_SHADER);
+
+		}
+	</script>
+</body>
+</html>

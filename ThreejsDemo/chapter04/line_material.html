@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var line;
+		var lineGeometry;
+		var lineMaterial;
+		var colors; // 颜色组
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls, basicContr, dashedContr;
+    var basicFolder, dashedFolder;
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.005; // 旋转速度
+	      this.material = "LineBasicMaterial";
+	    };
+	    basicContr = new function(){
+	    	this.opacity = 1;
+	    	this.linewidth = 1;
+	    }
+	    dashedContr = new function(){
+	    	this.opacity = 1;
+	    	this.linewidth = 1;
+	    	this.dashSize = 2; // 短划线的长度
+        this.gapSize = 2; // 间隔的长度
+        this.scale = 0.1;// 缩放比例，即缩放上面两者。如果scale小于1，两者增大，大于1则缩小
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.add(controls, 'material', ['LineBasicMaterial', 'LineDashedMaterial']).onChange(function(e){
+    		createLineMaterial(e);
+    	})
+
+    	basicFolder = gui.addFolder("1.LineBasicMaterial");
+    	basicFolder.add(basicContr, 'opacity', 0, 1).onChange(function(e){
+    		lineMaterial.opacity = e;
+    		lineMaterial.needsUpdate = true;
+    	})
+    	basicFolder.add(basicContr, 'linewidth', 0, 10).step(1).onChange(function(e){
+    		lineMaterial.linewidth = e;
+    		lineMaterial.needsUpdate = true;
+    	})
+
+    	dashedFolder = gui.addFolder("2.LineDashedMaterial");
+    	dashedFolder.add(dashedContr, 'opacity', 0, 1).onChange(function(e){
+    		lineMaterial.opacity = e;
+    		lineMaterial.needsUpdate = true;
+    	})
+    	dashedFolder.add(dashedContr, 'linewidth', 0, 10).step(1).onChange(function(e){
+    		lineMaterial.linewidth = e;
+    		lineMaterial.needsUpdate = true;
+    	})
+    	dashedFolder.add(dashedContr, 'dashSize', 0, 10).step(1).onChange(function(e){
+    		lineMaterial.dashSize = e;
+    		lineMaterial.needsUpdate = true;
+    	})
+    	dashedFolder.add(dashedContr, 'gapSize', 0, 10).step(1).onChange(function(e){
+    		lineMaterial.gapSize = e;
+    		lineMaterial.needsUpdate = true;
+    	})
+    	dashedFolder.add(dashedContr, 'scale', 0, 3).onChange(function(e){
+    		lineMaterial.scale = e;
+    		lineMaterial.needsUpdate = true;
+    	})
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	// 旋转
+    	// line.rotation.x += controls.rotationSpeed;
+    	line.rotation.y += controls.rotationSpeed;
+    	// line.rotation.z += controls.rotationSpeed;
+    	
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = -30;
+			camera.position.y = 30;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0x000000, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+			var points = createGosper(4, 60);
+
+			// 创建线段几何体
+			lineGeometry = new THREE.Geometry();
+			colors = [];
+			for(var i=0, pl = points.length; i < pl; i++){
+				// 将各个定义填充至几何体对象中
+				lineGeometry.vertices.push(new THREE.Vector3( points[i].x, points[i].y, points[i].z ));
+				colors[i] = new THREE.Color( 0xFFFFFF );
+				// 这里的颜色是HSL，提供的是色调，饱和度，亮度，而不是红绿蓝的值。这种颜色比RGB更直观，也更容易创建出匹配的颜色集合。
+				colors[i].setHSL(points[i].x/100 + 0.5, points[i].y * 20 / 300, 0.8);
+			}
+
+			// 配置控制器
+			initControler();
+			
+			// 默认线段几何体材质
+			createLineMaterial("LineBasicMaterial");
+
+			
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(-40, 60, -10);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			
+			// 开始渲染
+			render();
+		}
+
+		function createLineMaterial(type){
+			switch(type){
+  			case "LineBasicMaterial":
+  				basicFolder.open();
+  				dashedFolder.close();
+
+  				scene.remove(line);
+  				lineGeometry.colors = colors;
+  				// 创建线段几何体材质
+					lineMaterial = new THREE.LineBasicMaterial({
+	            opacity: 1.0, // 透明度
+	            linewidth: 1, // 线宽
+	            vertexColors: THREE.VertexColors // 顶点颜色，这里直接选择顶点颜色，顶点与顶点之间的颜色是内插渐变的
+	        });
+
+					line = new THREE.Line( lineGeometry, lineMaterial );
+					line.position.set(35, -70, -50);
+					scene.add(line);
+					
+  				break;
+  			case "LineDashedMaterial":
+  				basicFolder.close();
+  				dashedFolder.open();
+
+  				scene.remove(line);
+  				var copyGemo = lineGeometry.clone();
+  				copyGemo.computeLineDistances();
+  				copyGemo.colors = colors;
+  				lineMaterial = new THREE.LineDashedMaterial({
+	            vertexColors: true, // 启用顶点颜色
+	            color: 0xffffff,
+	            dashSize: 2, // 短划线的长度
+	            gapSize: 2, // 间隔的长度
+	            scale: 0.1 // 缩放比例，即缩放上面两者。如果scale小于1，两者增大，大于1则缩小
+	        });
+
+	        line = new THREE.Line( copyGemo, lineMaterial );
+					line.position.set(35, -70, -50);
+					scene.add(line);
+
+  				break;
+  		}
+		}
+
+		/**
+		 * 创建龟壳图点数据
+		 * @return {[type]} [description]
+		 */
+		function createGosper(a, b){
+			var turtle = [0, 0, 0];
+      var points = [];
+      var count = 0;
+
+      var rt = function(x) {
+        turtle[2] += x;
+      }
+      var lt = function(x){
+      	turtle[2] -= x;
+      }
+      var fd = function(dist){
+      	points.push({x: turtle[0], y: turtle[1], z: Math.sin(count) * 5});
+
+        var dir = turtle[2] * (Math.PI / 180);
+        turtle[0] += Math.cos(dir) * dist;
+        turtle[1] += Math.sin(dir) * dist;
+
+        points.push({x: turtle[0], y: turtle[1], z: Math.sin(count) * 5});
+      }
+      var rg = function(st, ln, turtle){
+      	st--;
+        ln = ln / 2.6457;
+        if (st > 0) {
+            rg(st, ln, turtle);
+            rt(60);
+            gl(st, ln, turtle);
+            rt(120);
+            gl(st, ln, turtle);
+            lt(60);
+            rg(st, ln, turtle);
+            lt(120);
+            rg(st, ln, turtle);
+            rg(st, ln, turtle);
+            lt(60);
+            gl(st, ln, turtle);
+            rt(60);
+        }
+        if (st == 0) {
+            fd(ln);
+            rt(60);
+            fd(ln);
+            rt(120);
+            fd(ln);
+            lt(60);
+            fd(ln);
+            lt(120);
+            fd(ln);
+            fd(ln);
+            lt(60);
+            fd(ln);
+            rt(60)
+        }
+      }
+      var gl = function(st, ln, turtle){
+      	st--;
+        ln = ln / 2.6457;
+        if (st > 0) {
+            lt(60);
+            rg(st, ln, turtle);
+            rt(60);
+            gl(st, ln, turtle);
+            gl(st, ln, turtle);
+            rt(120);
+            gl(st, ln, turtle);
+            rt(60);
+            rg(st, ln, turtle);
+            lt(120);
+            rg(st, ln, turtle);
+            lt(60);
+            gl(st, ln, turtle);
+        }
+        if (st == 0) {
+            lt(60);
+            fd(ln);
+            rt(60);
+            fd(ln);
+            fd(ln);
+            rt(120);
+            fd(ln);
+            rt(60);
+            fd(ln);
+            lt(120);
+            fd(ln);
+            lt(60);
+            fd(ln);
+        }
+      }
+      rg(a, b, turtle);
+      return points;
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>webgl test</title>
+	<style type="text/css">
+		body{
+			margin: 0;
+			padding: 0;
+		}
+	</style>
+</head>
+<body onload="main()">
+	<canvas id="example" width="400" height="400">no support canvas</canvas>
+
+	<script type="text/javascript" src="../lib/webgl-utils.js"></script>
+	<script type="text/javascript" src="../lib/webgl-debug.js"></script>
+	<script type="text/javascript" src="../lib/cuon-utils.js"></script>
+	<script type="text/javascript" src="../lib/cuon-matrix.js"></script>
+	<!-- <script type="text/javascript" src="../lib/loadShaderFile.js"></script> -->
+	
+	<script type="text/javascript">
+
+		var VSSHADER_SOURCE = null,
+				FSHADER_SOURCE = null;
+
+		var canvas = null;
+
+		function load_shader(gl, fileName, shaderType){
+			var request = new XMLHttpRequest();
+			request.onreadystatechange = function(){
+				if(request.readyState === 4 && request.status !== 404){
+					if(shaderType == gl.VERTEX_SHADER) VSSHADER_SOURCE = request.responseText;
+					if(shaderType == gl.FRAGMENT_SHADER) FSHADER_SOURCE = request.responseText;
+					getShaderSource(gl);
+				}
+			}
+			request.open('GET', fileName, true);
+			request.send();
+		}
+
+		function getShaderSource(gl){
+			if(VSSHADER_SOURCE && FSHADER_SOURCE){
+				init(gl);
+			}
+		}
+
+		function init(gl){
+			if(!initShaders(gl, VSSHADER_SOURCE, FSHADER_SOURCE)){
+				console.log('Failed to intialize shaders.');
+    		return;
+			}
+
+			var n = initVertexBuffers(gl);
+
+			if(n < 0){
+				console.log("failed to set vertices");
+				return;
+			}
+
+			gl.clearColor(0.0, 0.0, 0.0, 1.0);
+			gl.enable(gl.DEPTH_TEST); // 已开启深度测试
+
+			var u_MVPMatrix = gl.getUniformLocation(gl.program, 'u_MVPMatrix');
+			var u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
+			var u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+			var u_LightPosition = gl.getUniformLocation(gl.program, 'u_LightPosition');
+			var u_LightColor = gl.getUniformLocation(gl.program, 'u_LightColor');
+			// var u_LightDirection = gl.getUniformLocation(gl.program, 'u_LightDirection');
+			var u_AmbientLight = gl.getUniformLocation(gl.program, 'u_AmbientLight');
+			
+			// 设置光的颜色
+			gl.uniform3f(u_LightColor, 0.8, 0.8, 0.8); // 白光
+			gl.uniform3f(u_AmbientLight, 0.2, 0.2, 0.2); // 环境光颜色
+			// 设置光源的位置
+			gl.uniform3f(u_LightPosition, 5.0, 8.0, 7.0); // 光源位置
+			
+			// 优化上面的代码
+			var mvpMatrix = new Matrix4();
+			var modelMatrix = new Matrix4();
+			var normalMatrix = new Matrix4(); 
+
+			// 注意顺序
+			modelMatrix.setRotate(90, 0, 1, 0); // z轴转90度
+			mvpMatrix.setPerspective(30, canvas.width / canvas.height, 1, 100);
+			mvpMatrix.lookAt(0, 0, 6, 0, 0, 0, 0, 1, 0);
+			mvpMatrix.multiply(modelMatrix);
+
+			// 根据模型矩阵转换逆转置矩阵
+			normalMatrix.setInverseOf(modelMatrix); // 求逆
+			normalMatrix.transpose(); // 转置
+
+			gl.uniformMatrix4fv(u_MVPMatrix, false, mvpMatrix.elements);
+			gl.uniformMatrix4fv(u_NormalMatrix, false, normalMatrix.elements);
+			gl.uniformMatrix4fv(u_ModelMatrix, false, modelMatrix.elements);
+
+			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+			// 使用element array buffer的缓冲区的顶点索引绘制
+			// 这里重点注意缓冲区的数据类型要与type类型要对应：缓冲区中的数据格式为Uint16Array, 则type应为UNSIGNED_SHORT，
+			// 如果不对应，不会报错，但是绘制出来的东西不可预测
+			gl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_SHORT, 0);
+		}
+
+		function initVertexBuffers(gl){
+			var SPHERE_DIV = 60; // 设置60个顶点
+
+		  var i, ai, si, ci;
+		  var j, aj, sj, cj;
+		  var p1, p2;
+
+		  var positions = [];
+		  var indices = [];
+
+		  // Generate coordinates
+		  for (j = 0; j <= SPHERE_DIV; j++) {
+		    aj = j * Math.PI / SPHERE_DIV;
+		    sj = Math.sin(aj);
+		    cj = Math.cos(aj);
+		    for (i = 0; i <= SPHERE_DIV; i++) {
+		      ai = i * 2 * Math.PI / SPHERE_DIV;
+		      si = Math.sin(ai);
+		      ci = Math.cos(ai);
+
+		      positions.push(si * sj);  // X
+		      positions.push(cj);       // Y
+		      positions.push(ci * sj);  // Z
+		    }
+		  }
+
+		  // Generate indices
+		  for (j = 0; j < SPHERE_DIV; j++) {
+		    for (i = 0; i < SPHERE_DIV; i++) {
+		      p1 = j * (SPHERE_DIV+1) + i;
+		      p2 = p1 + (SPHERE_DIV+1);
+
+		      indices.push(p1);
+		      indices.push(p2);
+		      indices.push(p1 + 1);
+
+		      indices.push(p1 + 1);
+		      indices.push(p2);
+		      indices.push(p2 + 1);
+		    }
+		  }
+
+			if(!initArrayBuffer(gl, new Float32Array(positions), 3, gl.FLOAT, 'a_Position')) {
+				console.log("not position");
+				return -1;
+			}
+			
+			if(!initArrayBuffer(gl, new Float32Array(positions), 3, gl.FLOAT, 'a_Normal')) {
+				console.log("not normal");
+				return -1;
+			}
+
+			// Unbind the buffer object
+  		gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+  		// 创建缓冲区对象
+			var indexBuffer = gl.createBuffer();
+			if(!indexBuffer) {
+				console.log("not create buffer");
+				return -1;
+			}
+
+
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+
+			return indices.length;
+		}
+
+		function initArrayBuffer(gl, data, num, type, attribute){
+			var buffer = gl.createBuffer();
+			if(!buffer){
+				console.log('not create buffer object');
+				return false;
+			}
+			gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+			gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+			var FSIZE = data.BYTES_PER_ELEMENT;
+
+			var a_attribute = gl.getAttribLocation(gl.program, attribute);
+			if(a_attribute < 0){
+				console.log("not find shader of attribute");
+				return false;
+			}
+
+			// 由于缓冲数据已经分类拆解开了，因此不需要再根据哪种属性而选定不同的起点和位数
+			gl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);
+			gl.enableVertexAttribArray(a_attribute);
+
+			return true;
+		}
+
+		function main() {
+			canvas = document.getElementById("example");
+			if(!canvas){
+				console.log("no read element");
+				return;
+			}
+			
+			var gl = getWebGLContext(canvas);
+			if (!gl) {
+				console.log('no read rendering context for webgl');
+				return;
+			}
+
+			load_shader(gl, 'shader/point_light_sphere.vs', gl.VERTEX_SHADER);
+			load_shader(gl, 'shader/point_light_sphere.fs', gl.FRAGMENT_SHADER);
+
+		}
+	</script>
+</body>
+</html>
