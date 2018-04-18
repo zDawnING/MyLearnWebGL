@@ -15,9 +15,17 @@
 
 	<div id="stats-output"></div>
 	<div id="webgl-output"></div>
-	
+
 	<script type="text/javascript" src="../lib/three.js"></script>
 	<script type="text/javascript" src="../lib/ConvexGeometry.js"></script>
+	<script type="text/javascript" src="../lib/d3-threeD.js"></script>
+	<script type="text/javascript" src="../lib/OrbitControls.js"></script>
+	<!-- 经过提取的SVG path -->
+	<script type="text/javascript" src="../assets/BatmanSvgPath.js"></script>
+	<!-- 数学公式 -->
+	<script type="text/javascript" src="../assets/MathFormula.js"></script>
+	<!-- 字体文件 -->
+	<script type="text/javascript" src="../assets/helvetiker_regular.typeface.js"></script>
 	<script type="text/javascript" src="../lib/stats.js"></script>
 	<script type="text/javascript" src="../lib/dat.gui.js"></script>
 
@@ -32,30 +40,34 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var convex, points, spGroup, lathe, extrude;
+		var convex, points, spGroup, lathe, extrude, extrudeTube, extrudeSvg, parametric, text;
 		// 对象类型
 		var OBJ_TYPE = {
 			CONVEX: 1,
 			LATHE: 2,
 			EXTRUDE: 3,
-			// SHAPE: 3,
-			// RING: 4,
-			// CUBE: 5,
-			// SPHERE: 6,
-			// CYLINDER: 7,
-			// TORUS: 8,
-			// TORUS_KNOT: 9,
-			// POLYHEDRON: 10
+			EXTRUDE_TUBE: 4,
+			EXTRUDE_SVG: 5,
+			PARAMETRIC: 6,
+			TEXT: 7
 		}
 		// 场景相关控制变量
 		var step = 0; // 记录弹跳的增量
     var controls, 
     		convexContr,
     		latheContr,
-    		extrudeContr;
+    		extrudeContr,
+    		extrudeTubeContr,
+    		extrudeSvgContr,
+    		parametricContr,
+    		textContr;
     var convexFolder,
     		latheFolder,
-    		extrudeFolder;
+    		extrudeFolder,
+    		extrudeTubeFolder,
+    		extrudeSvgFolder,
+    		parametricFolder,
+    		textFolder;
     		
 
     /**
@@ -122,9 +134,144 @@
 	    		extrude.position.y = -10;
 					scene.add(extrude);
 	    	}
-
 	    }
-	    
+	    extrudeTubeContr = new function(){
+	    	this.segments = 64; // 构建这个管道的所用的分段数
+	    	this.radius = 1; // 管道的半径，默认1
+	    	this.radiusSegments = 8; // 指定管道圆周分段数，默认8
+	    	this.closed = false; // 是否头尾相连，默认false
+	    	// this.debug = false; // 如果开启debug,额外的调试信息会添加至管道
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		// 重新生成点集
+	    		extrudeTube = createMesh(new THREE.TubeGeometry(new THREE.SplineCurve3(points), 
+	    			extrudeTubeContr.segments,
+	    			extrudeTubeContr.radius,
+	    			extrudeTubeContr.radiusSegments,
+	    			extrudeTubeContr.closed
+	    		));
+					scene.add(extrudeTube);
+	    	}
+	    }
+	    extrudeSvgContr = new function(){
+	    	this.amount = 2; // 指定图形可以拉伸多高，默认100
+	    	this.bevelThickness = 2; // 指定斜角深度，斜角是前后和拉伸体之间的倒角，即边缘的曲滑程度，默认6
+	    	this.bevelSize = 1; // 斜角的高度，
+	    	this.bevelSegments = 3; //斜角分段数, 默认3
+	    	this.bevelEnabled = true; // 是否使用斜角
+	    	this.curveSegments = 12; // 拉伸图形时曲线分成多少段
+	    	this.steps = 1; // 拉伸体段数
+	    	// 还有更多材质属性直接查看API
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		// 配置参数对象
+	    		var options = {
+	    			amount: extrudeSvgContr.amount, 
+	    			bevelThickness: extrudeSvgContr.bevelThickness,
+	    			bevelSize: extrudeSvgContr.bevelSize,
+	    			bevelSegments: Math.round(extrudeSvgContr.bevelSegments),
+	    			bevelEnabled: extrudeSvgContr.bevelEnabled,
+	    			curveSegments: Math.round(extrudeSvgContr.curveSegments),
+	    			steps: extrudeSvgContr.steps
+	    		}
+	    		extrudeSvg = createMesh(new THREE.ExtrudeGeometry( drawShapeBySvgPath(), options ));
+					extrudeSvg.scale.set(0.04, 0.04, 0.04);
+					extrudeSvg.rotation.set(Math.PI, 0, 0);
+					extrudeSvg.position.set(0, 20, 0);
+					scene.add(extrudeSvg);
+	    	}
+	    }
+	    parametricContr = new function(){
+	    	this.mathFormula = "plane";
+	    	this.slices = 40; // 定义u值应该分成多少份
+	    	this.stacks = 40;
+	    	// 重新构造几何体
+	    	this.reDrawMesh = function(type){
+	    		removeObjects();
+	    		switch(type){
+	    			case "plane":
+	    				parametric = createMesh(new THREE.ParametricGeometry(
+	    					// ParametricGeometry会调用这个函数并传入u、v值，两者取值范围是0到1，同时决定x、y坐标上的向量
+	    					// 函数的执行次数是：slices*stacks次，
+	    					// 即生成的向量有： u: 0~slices/slices，v: 0~stacks/stacks, 生成的向量越多，图形越光滑
+	    					MathFormula.plane(50, 50),
+	    					parametricContr.slices,
+	    					parametricContr.stacks
+	    					));
+	    				break;
+	    			case "radialWave":
+	    				parametric = createMesh(new THREE.ParametricGeometry(
+	    					// 放射状波浪
+	    					MathFormula.radialWave,
+	    					parametricContr.slices,
+	    					parametricContr.stacks
+	    					));
+	    				break;
+	    			case "klein":
+	    				parametric = createMesh(new THREE.ParametricGeometry(
+	    					// 克莱因瓶
+	    					MathFormula.klein,
+	    					parametricContr.slices,
+	    					parametricContr.stacks
+	    					));
+	    				parametric.scale.set(1.5, 1.5, 1.5);
+	    				break;
+	    			case "mobius":
+	    				parametric = createMesh(new THREE.ParametricGeometry(
+	    					// 莫比乌斯带2d
+	    					MathFormula.mobius,
+	    					parametricContr.slices,
+	    					parametricContr.stacks
+	    					));
+	    				parametric.scale.set(4.0, 4.0, 4.0);
+	    				break;
+	    			case "mobius3D":
+	    				parametric = createMesh(new THREE.ParametricGeometry(
+	    					// 莫比乌斯带3d
+	    					MathFormula.mobius3d,
+	    					parametricContr.slices,
+	    					parametricContr.stacks
+	    					));
+	    				parametric.scale.set(4.0, 4.0, 4.0);	
+	    				break;				
+	    		}
+	    		// parametric.position.set(-25, 0, -25);
+	    		scene.add(parametric);
+	    	}
+	    }
+	    textContr = new function(){
+	    	this.size = 90; // 字体大小
+        this.height = 90; // 高度
+        this.weight = 'normal'; // 粗细
+        this.font = "helvetiker"; // 字体
+        this.bevelThickness = 2; // 斜角深度
+        this.bevelSize = 0.5; // 斜角的高度
+        this.bevelEnabled = true; // 是否开启斜角
+        this.bevelSegments = 3; // 斜角分段数
+        this.curveSegments = 12; // 拉伸图形时曲线分成多少段
+        this.steps = 1; // 拉伸体段数
+        // 重新构造几何体
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		// 配置参数对象
+	    		var options = {
+	    			size: textContr.size,
+	    			height: textContr.height,
+	    			bevelThickness: textContr.bevelThickness,
+	    			bevelSize: textContr.bevelSize,
+	    			bevelSegments: Math.round(textContr.bevelSegments),
+	    			bevelEnabled: textContr.bevelEnabled,
+	    			curveSegments: Math.round(textContr.curveSegments),
+	    			steps: textContr.steps
+	    		}
+	    		text = createMesh(new THREE.TextGeometry( "zDawnING", options ));
+					text.scale.set(0.1, 0.1, 0.1);
+					scene.add(text);
+	    	}
+	    }
+
 
     	gui = new dat.GUI();
     	gui.add(controls, 'rotationSpeed', 0, 0.5);
@@ -132,6 +279,10 @@
     		convex: OBJ_TYPE.CONVEX,
     		lathe: OBJ_TYPE.LATHE,
     		extrude: OBJ_TYPE.EXTRUDE,
+    		extrudeTube: OBJ_TYPE.EXTRUDE_TUBE,
+    		extrudeSvg: OBJ_TYPE.EXTRUDE_SVG,
+    		parametric: OBJ_TYPE.PARAMETRIC,
+    		text: OBJ_TYPE.TEXT
     	}).onChange(function(e){
     		removeObjects();
     		closeAllFolder();
@@ -164,6 +315,55 @@
     	extrudeFolder.add(extrudeContr, 'curveSegments', 1, 20).step(1).onChange(extrudeContr.reDrawMesh);
     	extrudeFolder.add(extrudeContr, 'steps', 1, 5).step(1).onChange(extrudeContr.reDrawMesh);
 
+    	//------------------------------------
+    	// 延展管道（按点集中点的顺序来绘制管道） 3d几何体模块
+    	//------------------------------------
+    	extrudeTubeFolder = gui.addFolder("4.Extrude Tube");
+    	extrudeTubeFolder.add(extrudeTubeContr, 'segments', 0, 200).step(1).onChange(extrudeTubeContr.reDrawMesh);
+    	extrudeTubeFolder.add(extrudeTubeContr, 'radius', 0, 20).onChange(extrudeTubeContr.reDrawMesh);
+    	extrudeTubeFolder.add(extrudeTubeContr, 'radiusSegments', 0, 30).step(1).onChange(extrudeTubeContr.reDrawMesh);
+    	extrudeTubeFolder.add(extrudeTubeContr, 'closed').onChange(extrudeTubeContr.reDrawMesh);
+
+    	//------------------------------------
+    	// SVG地址延展体（构建好二维对象将其拉伸至三维） 3d几何体模块
+    	//------------------------------------
+    	extrudeSvgFolder = gui.addFolder("4.Extrude Svg");
+    	extrudeSvgFolder.add(extrudeSvgContr, 'amount', 0, 100).onChange(extrudeSvgContr.reDrawMesh);
+    	extrudeSvgFolder.add(extrudeSvgContr, 'bevelThickness', 0, 20).onChange(extrudeSvgContr.reDrawMesh);
+    	extrudeSvgFolder.add(extrudeSvgContr, 'bevelSize', 0, 5).onChange(extrudeSvgContr.reDrawMesh);
+    	extrudeSvgFolder.add(extrudeSvgContr, 'bevelSegments', 0, 30).step(1).onChange(extrudeSvgContr.reDrawMesh);
+    	extrudeSvgFolder.add(extrudeSvgContr, 'bevelEnabled').onChange(extrudeSvgContr.reDrawMesh);
+    	extrudeSvgFolder.add(extrudeSvgContr, 'curveSegments', 1, 20).step(1).onChange(extrudeSvgContr.reDrawMesh);
+    	extrudeSvgFolder.add(extrudeSvgContr, 'steps', 1, 5).step(1).onChange(extrudeSvgContr.reDrawMesh);
+
+    	//------------------------------------
+    	// 自定义几何体（根据数学公式来生成） 3d几何体模块
+    	//------------------------------------
+    	parametricFolder = gui.addFolder("5.Parametric");
+    	parametricFolder.add(parametricContr, 'mathFormula', 
+    		["plane", "radialWave", "klein", "mobius", "mobius3D"]
+    	).onChange(function(e){
+    		parametricContr.reDrawMesh(e);
+    	});
+    	parametricFolder.add(parametricContr, 'slices', 1, 120).step(1).onChange(function(e){
+    		parametricContr.reDrawMesh(parametricContr.mathFormula);
+    	});
+    	parametricFolder.add(parametricContr, 'stacks', 1, 120).step(1).onChange(function(e){
+    		parametricContr.reDrawMesh(parametricContr.mathFormula);
+    	});
+
+    	//------------------------------------
+    	// 立体字 3d几何体模块
+    	//------------------------------------
+    	textFolder = gui.addFolder("6.Text");
+    	textFolder.add(textContr, 'size', 0, 100).onChange(textContr.reDrawMesh);
+    	textFolder.add(textContr, 'height', 0, 100).onChange(textContr.reDrawMesh);
+    	textFolder.add(textContr, 'bevelThickness', 0, 20).onChange(textContr.reDrawMesh);
+    	textFolder.add(textContr, 'bevelSize', 0, 5).onChange(textContr.reDrawMesh);
+    	textFolder.add(textContr, 'bevelSegments', 0, 30).step(1).onChange(textContr.reDrawMesh);
+    	textFolder.add(textContr, 'bevelEnabled').onChange(textContr.reDrawMesh);
+    	textFolder.add(textContr, 'curveSegments', 1, 20).step(1).onChange(textContr.reDrawMesh);
+    	textFolder.add(textContr, 'steps', 1, 5).step(1).onChange(textContr.reDrawMesh);
     }
 
     /**
@@ -175,15 +375,10 @@
 			scene.remove(convex);
 			scene.remove(lathe);
 			scene.remove(extrude);
-			// scene.remove(circle);
-			// scene.remove(shape);
-			// scene.remove(ring);
-			// scene.remove(cube);
-			// scene.remove(sphere);
-			// scene.remove(cylinder);
-			// scene.remove(torus);
-			// scene.remove(torusKnot);
-			// scene.remove(polyhedron);
+			scene.remove(extrudeTube);
+			scene.remove(extrudeSvg);
+			scene.remove(parametric);
+			scene.remove(text);
 		}
 
 		/**
@@ -212,6 +407,49 @@
 					scene.add(extrude);
 					extrudeFolder.open();
 					break;
+				case OBJ_TYPE.EXTRUDE_TUBE:
+					// 重新生成点集
+	    		createRandomPoints();
+	    		extrudeTube = createMesh(new THREE.TubeGeometry(new THREE.SplineCurve3(points), 
+	    			extrudeTubeContr.segments,
+	    			extrudeTubeContr.radius,
+	    			extrudeTubeContr.radiusSegments,
+	    			extrudeTubeContr.closed
+	    		));
+					scene.add(extrudeTube);
+					extrudeTubeFolder.open();
+					break;
+				case OBJ_TYPE.EXTRUDE_SVG:
+					extrudeSvg = createMesh(new THREE.ExtrudeGeometry(drawShapeBySvgPath(), {amount: 2}));
+					extrudeSvg.scale.set(0.04, 0.04, 0.04);
+					extrudeSvg.rotation.set(Math.PI, 0, 0);
+					extrudeSvg.position.set(0, 20, 0);
+					scene.add(extrudeSvg);
+					extrudeSvgFolder.open();
+					break;
+				case OBJ_TYPE.PARAMETRIC:
+					parametric = createMesh(new THREE.ParametricGeometry(MathFormula.plane(50, 50), 10, 10));
+  				scene.add(parametric);
+  				parametricFolder.open();
+					break;
+				case OBJ_TYPE.TEXT:
+					// 配置参数对象
+	    		var options = {
+	    			size: textContr.size,
+	    			height: textContr.height,
+	    			weight: textContr.weight,
+	    			font: textContr.font,
+	    			bevelThickness: textContr.bevelThickness,
+	    			bevelSize: textContr.bevelSize,
+	    			bevelSegments: Math.round(textContr.bevelSegments),
+	    			bevelEnabled: textContr.bevelEnabled,
+	    			curveSegments: Math.round(textContr.curveSegments),
+	    			steps: textContr.steps
+	    		}
+					text = createMesh(new THREE.TextGeometry("zDawnING", options));
+					text.scale.set(0.1, 0.1, 0.1);
+					scene.add(text);
+					textFolder.open();
 			}
 		}
 
@@ -219,13 +457,10 @@
 			convexFolder.close();
     	latheFolder.close();
     	extrudeFolder.close();
-    	
-    	// cubeFolder.close();
-    	// sphereFolder.close();
-    	// cylinderFolder.close();
-    	// torusFolder.close();
-    	// torusKnotFolder.close();
-    	// polyhedronFolder.close();
+    	extrudeTubeFolder.close();
+    	extrudeSvgFolder.close();
+    	parametricFolder.close();
+    	textFolder.close();
 		}
 
     /**
@@ -383,6 +618,15 @@
 			hole3.absarc(20,16, 2, 0,Math.PI, true);
 			shape.holes.push(hole3);
 
+			return shape;
+		}
+
+		/**
+		 * 根据提供的SVG轨迹地址转换shape对象
+		 * @return {[type]} [description]
+		 */
+		function drawShapeBySvgPath(){
+			var shape = transformSVGPathExposed(BatmanSvgPathStr);
 			return shape;
 		}
 
