@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/spin.js"></script>
+	<script type="text/javascript" src="../lib/ThreeBSP.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+		var spinner; // 正在加载的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var cube, sphere1, sphere2, result;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls,
+    		cubeContr,
+    		sphere1Contr,
+    		sphere2Contr;
+    var cubeFolder,
+    		sphere1Folder,
+    		sphere2Folder;		
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.02; // 旋转速度
+	      this.showResult = function(){
+
+	      	if(cubeContr.combineType == 'none' && sphere2Contr.combineType == 'none'){
+	      		return;
+	      	}
+
+	      	// 正在加载处理中
+	      	showSpinner();
+	      	
+      		scene.remove(result);
+
+	      	// 创建三个对象的BSP对象
+	      	var cubeBSP = new ThreeBSP(cube);
+	      	var sphere1BSP = new ThreeBSP(sphere1);
+	      	var sphere2BSP = new ThreeBSP(sphere2);
+
+	      	// 先将shpere1与shpere2关联
+	      	var resultBSP = executeCombine(sphere1BSP, sphere2BSP, sphere2Contr.combineType);
+	      	if(!resultBSP){
+	      		resultBSP = sphere1BSP;
+	      	}
+	      	// 再将结果与cube关联
+	      	resultBSP = executeCombine(resultBSP, cubeBSP, cubeContr.combineType);
+	      	
+	      	// 从BSP中提取网格对象
+	      	result = resultBSP.toMesh();
+	      	// 重新计算网格对象中的面与顶点的法向量
+	      	result.geometry.computeFaceNormals();
+	      	result.geometry.computeVertexNormals();
+	      	scene.add(result);
+
+	      	hideSpinner(spinner);
+	      	
+	      }
+	      this.hideWireFrame = false; // 是否隐藏网格样式
+	      this.rotateResult = false; // 控制是否旋转结果
+	    };
+	    cubeContr = new function(){
+	    	this.positionX = cube.position.x;
+	    	this.positionY = cube.position.y;
+	    	this.positionZ = cube.position.z;
+	    	// 改变立方体形状如果是动态的应尽量选择缩放形变，属性不适合
+	    	this.scaleX = 1;
+	    	this.scaleY = 1;
+	    	this.scaleZ = 1;
+	    	this.combineType = "none";
+	    	this.updateChange = function(){
+	    		cube.position.set(cubeContr.positionX, cubeContr.positionY, cubeContr.positionZ);
+	    		cube.scale.set(cubeContr.scaleX, cubeContr.scaleY, cubeContr.scaleZ);
+	    	}
+	    }
+	    sphere1Contr = new function(){
+	    	this.positionX = sphere1.position.x;
+	    	this.positionY = sphere1.position.y;
+	    	this.positionZ = sphere1.position.z;
+	    	// 改变立方体形状如果是动态的应尽量选择缩放形变，属性不适合
+	    	this.scale = 1;
+	    	// this.combineType = "none"; // 由于这里的例子是固定组合模式，因此该对象作为固定组合对象
+	    	this.updateChange = function(){
+	    		sphere1.position.set(sphere1Contr.positionX, sphere1Contr.positionY, sphere1Contr.positionZ);
+	    		sphere1.scale.set(sphere1Contr.scaleX, sphere1Contr.scaleY, sphere1Contr.scaleZ);
+	    	}
+	    }
+	    sphere2Contr = new function(){
+	    	this.positionX = sphere2.position.x;
+	    	this.positionY = sphere2.position.y;
+	    	this.positionZ = sphere2.position.z;
+	    	// 改变立方体形状如果是动态的应尽量选择缩放形变，属性不适合
+	    	this.scale = 1;
+	    	this.combineType = "none";
+	    	this.updateChange = function(){
+	    		sphere2.position.set(sphere2Contr.positionX, sphere2Contr.positionY, sphere2Contr.positionZ);
+	    		sphere2.scale.set(sphere2Contr.scaleX, sphere2Contr.scaleY, sphere2Contr.scaleZ);
+	    	}
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.add(controls, 'showResult');
+    	gui.add(controls, 'rotateResult');
+    	gui.add(controls, 'hideWireFrame').onChange(function(e){
+    		if(e){
+    			cube.material.visible = false;
+    			sphere1.material.visible = false;
+    			sphere2.material.visible = false;
+    		}else{
+    			cube.material.visible = true;
+    			sphere1.material.visible = true;
+    			sphere2.material.visible = true;
+    		}
+    	})
+
+    	cubeFolder = gui.addFolder("Cube");
+    	cubeFolder.add(cubeContr, 'positionX', -15, 15).onChange(cubeContr.updateChange);
+    	cubeFolder.add(cubeContr, 'positionY', -15, 15).onChange(cubeContr.updateChange);
+    	cubeFolder.add(cubeContr, 'positionZ', -15, 15).onChange(cubeContr.updateChange);
+    	cubeFolder.add(cubeContr, 'scaleX', 0, 10).onChange(cubeContr.updateChange);
+    	cubeFolder.add(cubeContr, 'scaleY', 0, 10).onChange(cubeContr.updateChange);
+    	cubeFolder.add(cubeContr, 'scaleZ', 0, 10).onChange(cubeContr.updateChange);
+    	cubeFolder.add(cubeContr, 'combineType', ["none", "subtract", "intersect", "union"]);
+
+    	sphere1Folder = gui.addFolder("Sphere1");
+    	sphere1Folder.add(sphere1Contr, 'positionX', -15, 15).onChange(sphere1Contr.updateChange);
+    	sphere1Folder.add(sphere1Contr, 'positionY', -15, 15).onChange(sphere1Contr.updateChange);
+    	sphere1Folder.add(sphere1Contr, 'positionZ', -15, 15).onChange(sphere1Contr.updateChange);
+    	sphere1Folder.add(sphere1Contr, 'scale', 0, 10).onChange(sphere1Contr.updateChange);
+    	// sphere1Folder.add(sphere1Contr, 'combineType', ["none", "subtract", "intersect", "union"]);
+    	
+    	sphere2Folder = gui.addFolder("Sphere2");
+    	sphere2Folder.add(sphere2Contr, 'positionX', -15, 15).onChange(sphere2Contr.updateChange);
+    	sphere2Folder.add(sphere2Contr, 'positionY', -15, 15).onChange(sphere2Contr.updateChange);
+    	sphere2Folder.add(sphere2Contr, 'positionZ', -15, 15).onChange(sphere2Contr.updateChange);
+    	sphere2Folder.add(sphere2Contr, 'scale', 0, 10).onChange(sphere2Contr.updateChange);
+    	sphere2Folder.add(sphere2Contr, 'combineType', ["none", "subtract", "intersect", "union"]);
+
+    }
+
+    /**
+     * 执行网格组合，有一个重要步骤是：这三个函数在计算时使用的是网格的绝对位置，应用网格组合时应确保
+     * 当前各个网格是没有经过多种材质组合的，这样才能确保组合出来的结果是正确的
+     * @param  {[type]} srcBSP     [主网格，不受combineType影响]
+     * @param  {[type]} combineBSP [关系网格，根据combineType与主网格组合]
+     * @param  {[type]} combineType [description]
+     * @return {[type]}             [description]
+     */
+    function executeCombine(srcBSP, combineBSP, combineType){
+    	var resultBSP;
+    	switch(combineType){
+    		case "subtract":
+    			// 该函数是在第一个几何体中减去第二个几何体交叠的部分，创建出新的几何体
+    			resultBSP = srcBSP.subtract(combineBSP);
+    			break;
+    		case "intersect":
+    			// 该函数是在两个几何体的交集上创建出新的几何体
+    			resultBSP = srcBSP.intersect(combineBSP);
+    			break;
+    		case "union":
+    			// 两个几何体联合一起创建出新的几何体
+    			// [注意：这个方法并不是很好用，因为Threejs本身就有提供这个功能，THREE.GeometryUtils.merge,且性能更好；
+    			// 如果旋转物体，其旋转中心就是以主网格的中心为标准的]
+    			resultBSP = srcBSP.union(combineBSP);
+    			break;
+    		default:
+    			resultBSP = null;
+    			break;			
+    	}
+    	return resultBSP;
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	
+    	// 判断是否打开旋转开关并创建了新的结果
+    	if(controls.rotateResult && result){
+    		result.rotation.y += controls.rotationSpeed;
+    	}
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 0;
+			camera.position.y = 30;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+			
+      sphere1 = createMesh(new THREE.SphereGeometry(5, 20, 30));
+      sphere1.position.x = -2;
+
+      sphere2 = createMesh(new THREE.SphereGeometry(5, 20, 30));
+      sphere2.position.x = 3;
+
+      cube = createMesh(new THREE.BoxGeometry(5, 5, 5));
+      cube.position.x = -7;
+
+      scene.add(sphere1);
+      scene.add(sphere2);
+      scene.add(cube);
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(-40, 60, -10);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			// 配置控制器
+			initControler();
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 创建网格对象
+		 * @param  {[type]} geometry [description]
+		 * @return {[type]}          [description]
+		 */
+		function createMesh(geometry){
+			// 创建法向量材质
+			// var normalMaterial = new THREE.MeshNormalMaterial();
+			// normalMaterial.side = THREE.DoubleSide;
+			// 创建基础材质
+			var basicMaterial = new THREE.MeshBasicMaterial();
+			// 开启网格模式
+			basicMaterial.wireframe = true;
+			basicMaterial.color = new THREE.Color(0xFF0000);
+			// 组合两种材质
+			// var mesh = THREE.SceneUtils.createMultiMaterialObject( 
+			// 	geometry,
+			// 	[normalMaterial, basicMaterial]
+			// );
+			var mesh = new THREE.Mesh(geometry, basicMaterial);
+			return mesh;
+		}
+
+		/**
+		 * 展示正在加载图标
+		 * @return {[type]} [description]
+		 */
+		function showSpinner(){
+			var opts = {
+        lines: 13, // The number of lines to draw
+        length: 20, // The length of each line
+        width: 10, // The line thickness
+        radius: 30, // The radius of the inner circle
+        corners: 1, // Corner roundness (0..1)
+        rotate: 0, // The rotation offset
+        direction: 1, // 1: clockwise, -1: counterclockwise
+        color: '#000', // #rgb or #rrggbb or array of colors
+        speed: 1, // Rounds per second
+        trail: 60, // Afterglow percentage
+        shadow: false, // Whether to render a shadow
+        hwaccel: false, // Whether to use hardware acceleration
+        className: 'spinner', // The CSS class to assign to the spinner
+        zIndex: 2e9, // The z-index (defaults to 2000000000)
+        top: 'auto', // Top position relative to parent in px
+        left: 'auto' // Left position relative to parent in px
+	    };
+	    var target = document.getElementById('WebGL-output');
+	    spinner = new Spinner(opts).spin(target);
+
+      return spinner;
+		}
+		function hideSpinner(spinner){
+			spinner.stop();
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
