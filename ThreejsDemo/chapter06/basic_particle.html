@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var particleSys, pointCloud, spriteGroup;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls,
+    		pointCloudContr,
+    		multiPointCloudContr,
+    		spriteGroupContr;
+    var pointCloudFolder, 
+    		multiPointCloudFolder,
+    		spriteGroupFolder;
+   	// 场景中的纹理对象
+   	var snowTexture1, 
+   			snowTexture2,
+   			snowTexture3,
+   			snowTexture4,
+   			spriteTexture;
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.005; // 旋转速度
+	      
+	      this.type = "demo1";
+	    };
+	    pointCloudContr = new function(){
+	    	this.size = 4; // 粒子大小，默认1
+        this.transparent = true; // 开启透明
+        this.opacity = 0.6; // 透明度，看上面是否开启
+        this.vertexColors = true; // 是否使用几何体中的颜色，默认false
+        this.color = 0xffffff; // 所有粒子的颜色，但是如果开启了vertexColors，并指定几何体颜色即被忽略
+        this.sizeAttenuation = true; // 粒子的大小是否受相机距离影响，默认false即不受影响
+        this.rotateSystem = true; // 是否旋转整个系统
+        this.range = 500; // 设置粒子随机生成的范围
+        this.textureType = "none"; 
+        this.reDraw = function(){
+        	removeObjects();
+        	var options = {
+						size: pointCloudContr.size, 
+						color: pointCloudContr.color, 
+						transparent: pointCloudContr.transparent, 
+						opacity: pointCloudContr.opacity, 
+						vertexColors: pointCloudContr.vertexColors, 
+						sizeAttenuation: pointCloudContr.sizeAttenuation,
+						map: switchTexture()
+					}
+        	createPointCloud(options);
+        }
+	    }
+	    multiPointCloudContr = new function(){
+	    	this.size = 4; // 粒子大小，默认1
+        this.transparent = true; // 开启透明
+        this.opacity = 0.8; // 透明度，看上面是否开启
+        this.vertexColors = false; // 是否使用几何体中的颜色，默认false
+        this.color = 0xffffff; // 所有粒子的颜色，但是如果开启了vertexColors，并指定几何体颜色即被忽略
+        this.sizeAttenuation = true; // 粒子的大小是否受相机距离影响，默认false即不受影响
+        this.range = 500; // 设置粒子随机生成的范围
+        this.reDraw = function(){
+        	removeObjects();
+        	var options = {
+						size: multiPointCloudContr.size, 
+						color: multiPointCloudContr.color, 
+						transparent: multiPointCloudContr.transparent, 
+						opacity: multiPointCloudContr.opacity, 
+						vertexColors: multiPointCloudContr.vertexColors, 
+						sizeAttenuation: multiPointCloudContr.sizeAttenuation
+					}
+          scene.add(createMultiPointCloud(options, "system1", snowTexture1));
+          scene.add(createMultiPointCloud(options, "system2", snowTexture2));
+          scene.add(createMultiPointCloud(options, "system3", snowTexture3));
+          scene.add(createMultiPointCloud(options, "system4", snowTexture4));
+
+          // 更换视角
+          camera.position.x = 100;
+					camera.position.y = 100;
+					camera.position.z = 100;
+        }
+	    }
+	    spriteGroupContr = new function(){
+	    	this.size = 10; 
+        this.transparent = true;
+        this.opacity = 0.6;
+        this.color = 0xffffff;
+        this.sizeAttenuation = true;
+        this.range = 200;
+        this.reDraw = function(){
+        	removeObjects();
+        	var options = {
+						color: spriteGroupContr.color, 
+						transparent: spriteGroupContr.transparent, 
+						opacity: spriteGroupContr.opacity, 
+						sizeAttenuation: spriteGroupContr.sizeAttenuation
+					}
+					spriteGroup = new THREE.Object3D();
+					for(var i=0; i<400; i++){
+						spriteGroup.add(createSprite(options, i%5));
+					}
+					scene.add(spriteGroup);
+        }
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.02);
+    	gui.add(controls, 'type', ["demo1", "demo2", "demo3", "demo4"]).onChange(function(e){
+    		removeObjects();
+    		closeAllFolder();
+    		switch(e){
+    			case "demo1":
+    				createParticles();
+    				break;
+    			case "demo2":
+    				pointCloudContr.reDraw();
+    				pointCloudFolder.open();
+    				break;
+    			case "demo3":
+    				multiPointCloudContr.reDraw();
+    				multiPointCloudFolder.open();	
+    				break;
+    			case "demo4":
+    				spriteGroupContr.reDraw();
+    				spriteGroupFolder.open();
+    				break;	
+    		}
+    	});
+
+    	pointCloudFolder = gui.addFolder("PointCloud");
+    	pointCloudFolder.add(pointCloudContr, 'size', 0, 10).onChange(pointCloudContr.reDraw);
+    	pointCloudFolder.add(pointCloudContr, 'transparent').onChange(pointCloudContr.reDraw); 
+    	pointCloudFolder.add(pointCloudContr, 'opacity', 0, 1).onChange(pointCloudContr.reDraw);
+    	pointCloudFolder.add(pointCloudContr, 'vertexColors').onChange(pointCloudContr.reDraw);
+    	pointCloudFolder.addColor(pointCloudContr, 'color').onChange(pointCloudContr.reDraw);
+    	pointCloudFolder.add(pointCloudContr, 'sizeAttenuation').onChange(pointCloudContr.reDraw);
+    	pointCloudFolder.add(pointCloudContr, 'rotateSystem');
+    	pointCloudFolder.add(pointCloudContr, 'range', 100, 1000).onChange(pointCloudContr.reDraw);
+    	pointCloudFolder.add(pointCloudContr, 'textureType', 
+    		["none", "canvasTexture", "imageTexture"]
+    	).onChange(pointCloudContr.reDraw);
+
+    	multiPointCloudFolder = gui.addFolder("MultiPointCloud");
+    	multiPointCloudFolder.add(multiPointCloudContr, 'size', 0, 10).onChange(multiPointCloudContr.reDraw);
+    	multiPointCloudFolder.add(multiPointCloudContr, 'transparent').onChange(multiPointCloudContr.reDraw); 
+    	multiPointCloudFolder.add(multiPointCloudContr, 'opacity', 0, 1).onChange(multiPointCloudContr.reDraw);
+    	multiPointCloudFolder.add(multiPointCloudContr, 'vertexColors').onChange(multiPointCloudContr.reDraw);
+    	multiPointCloudFolder.addColor(multiPointCloudContr, 'color').onChange(multiPointCloudContr.reDraw);
+    	multiPointCloudFolder.add(multiPointCloudContr, 'sizeAttenuation').onChange(multiPointCloudContr.reDraw);
+    	multiPointCloudFolder.add(multiPointCloudContr, 'range', 100, 1000).onChange(multiPointCloudContr.reDraw);
+
+    	spriteGroupFolder = gui.addFolder("Spirtes");
+    	spriteGroupFolder.add(spriteGroupContr, 'size', 0, 10).onChange(spriteGroupContr.reDraw);
+    	spriteGroupFolder.add(spriteGroupContr, 'transparent').onChange(spriteGroupContr.reDraw); 
+    	spriteGroupFolder.add(spriteGroupContr, 'opacity', 0, 1).onChange(spriteGroupContr.reDraw);
+    	spriteGroupFolder.addColor(spriteGroupContr, 'color').onChange(spriteGroupContr.reDraw);
+    	spriteGroupFolder.add(spriteGroupContr, 'sizeAttenuation').onChange(spriteGroupContr.reDraw);
+    	spriteGroupFolder.add(spriteGroupContr, 'range', 100, 1000).onChange(spriteGroupContr.reDraw);
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	
+    	if(controls.type == 'demo2' && pointCloudContr.rotateSystem){
+    		pointCloud.rotation.x += controls.rotationSpeed;
+    		pointCloud.rotation.z += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'demo3'){
+    		scene.children.forEach(function(child){
+	    		if(child.name.indexOf('system') >= 0){
+	    			var vertices = child.geometry.vertices;
+            vertices.forEach(function (v) {
+            		// 按速率进行移动
+                v.y -= (v.velocityY);
+                v.x -= (v.velocityX);
+                v.z -= (v.velocityZ);
+
+                // 掉落至地面直接重新放置到顶部
+                if (v.y <= 0) v.y = 270;
+            });
+	    		}
+	    	});
+    	}
+
+    	if(controls.type == 'demo4'){
+    		spriteGroup.rotation.x += controls.rotationSpeed;
+
+    	}
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+    /**
+     * 清空场景对象
+     * @return {[type]} [description]
+     */
+    function removeObjects(){
+    	scene.remove(particleSys);
+    	scene.remove(pointCloud);
+    	scene.remove(spriteGroup);
+    	// 移除多个点云系统
+    	var toRemovePointSys = [];
+    	scene.children.forEach(function(child){
+    		if(child.name.indexOf('system') >= 0){
+    			toRemovePointSys.push(child);
+    		}
+    	});
+    	toRemovePointSys.forEach(function(sys){
+    		scene.remove(sys);
+    	})
+    }
+    /**
+     * 关闭所有下拉
+     * @return {[type]} [description]
+     */
+    function closeAllFolder(){
+    	pointCloudFolder.close();
+    	multiPointCloudFolder.close();
+    }
+
+    /**
+     * 选择纹理类型
+     * @return {[type]} [description]
+     */
+    function switchTexture(){
+    	var map;
+    	switch(pointCloudContr.textureType){
+    		case "canvasTexture":
+    			map = createCanvasTexture();
+    			break;
+    		case "imageTexture":
+    			map = snowTexture2;
+    			break;	
+    		default:
+    			map = null;
+    			break;
+    	}
+    	return map;
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 0;
+			camera.position.y = 0;
+			camera.position.z = 150;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0x000000, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+      initImageTextures();
+
+			createParticles();
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			// 配置控制器
+			initControler();
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 创建精灵
+		 * @return {[type]} [description]
+		 */
+		function createSprite(options, spriteNum){
+			// 补充配置
+			options.map = getTexture(); //填充纹理，这里每次都要重新获取纹理对象
+			// 创建精灵材质
+			var material = new THREE.SpriteMaterial(options);
+			// 纹理对象中提供的是精灵图，根据spriteNum来选取正确的显示位置
+			material.map.offset = new THREE.Vector2(0.2 * spriteNum, 0); // offset决定纹理在x、y轴上的偏移量
+			// 仅设置偏移是不够的，图片会因默认填充方式而压缩在一起
+			material.map.repeat = new THREE.Vector2(1/5, 1); // 纹理填充方式，即放大x轴纹理，让其只显示1/5
+			material.depthTest = false; // 不受深度测试的影响
+			material.blending = THREE.AdditiveBlending; // 启用混合
+
+			var sprite = new THREE.Sprite( material );
+			sprite.scale.set(spriteGroupContr.size, spriteGroupContr.size, spriteGroupContr.size);
+			sprite.position.set(
+				Math.random() * spriteGroupContr.range - spriteGroupContr.range / 2,
+				Math.random() * spriteGroupContr.range - spriteGroupContr.range / 2,
+				Math.random() * spriteGroupContr.range - spriteGroupContr.range / 2
+			);
+			return sprite;
+		}
+
+		/**
+		 * 创建多粒子
+		 * @return {[type]} [description]
+		 */
+		function createParticles(){
+			var geometry = new THREE.Geometry();
+			// 创建点云材质
+			var material = new THREE.PointCloudMaterial( {
+				size: 4,
+				vertexColors: true,
+				color: 0xFFFFFF
+			} );
+			for(var x = -5; x <= 5; x++){
+				for(var y = -5; y <= 5; y++){
+					// 构建坐标点
+					var point = new THREE.Vector3( x * 10, y * 10, 0 );
+					geometry.vertices.push(point);
+					geometry.colors.push(new THREE.Color(Math.random() * 0xFF0000));
+				}
+			}
+			// 创建点云系统对象, 这个是旧版的名称，现版已重命名为PointCloud
+			particleSys = new THREE.ParticleSystem( geometry, material);
+			scene.add(particleSys);
+		}
+
+		/**
+		 * 创建多粒子（参数可调整）
+		 * @param  {[type]} options [参数]
+		 * @return {[type]}         [description]
+		 */
+		function createPointCloud(options){
+			var geometry = new THREE.Geometry();
+			var material = new THREE.PointCloudMaterial(options);
+			for(var i=0; i<1500; i++){
+				// 按范围生成随机点
+				var point = new THREE.Vector3(
+					Math.random() * pointCloudContr.range - pointCloudContr.range / 2,
+					Math.random() * pointCloudContr.range - pointCloudContr.range / 2,
+					Math.random() * pointCloudContr.range - pointCloudContr.range / 2,
+				);
+				geometry.vertices.push(point);
+				var color = new THREE.Color(0xFF0000);
+				// 尝试更加广域的颜色
+        color.setHSL(Math.random() * color.getHSL().h, Math.random() * color.getHSL().s, Math.random() * color.getHSL().l);
+				geometry.colors.push(color);
+			}
+			// 创建点云系统对象
+			pointCloud = new THREE.PointCloud( geometry, material );
+			scene.add(pointCloud);
+		}
+
+		/**
+		 * 创建多个点云系统
+		 * @param  {[type]} options [description]
+		 * @param  {[type]} name    [description]
+		 * @param  {[type]} texture [description]
+		 * @return {[type]}         [description]
+		 */
+		function createMultiPointCloud(options, name, texture){
+			var geometry = new THREE.Geometry();
+			var color = new THREE.Color(0xFF0000);
+			// 尝试广域的颜色
+      color.setHSL(Math.random() * color.getHSL().h, Math.random() * color.getHSL().s, Math.random() * color.getHSL().l);
+      // 补充新的材质配置
+      options.map = texture; // 填充纹理
+      options.blending = THREE.AdditiveBlending; // 配置融合模式
+      options.depthWrite = false; // 点云是否影响深度缓冲，这样就可以防止点云中的点对象相互干预
+      // 创建材质
+      var material = new THREE.PointCloudMaterial(options);
+      for (var i = 0; i < 1500; i++) {
+      	var point = new THREE.Vector3(
+      			Math.random() * multiPointCloudContr.range - multiPointCloudContr.range / 2,
+						Math.random() * multiPointCloudContr.range - multiPointCloudContr.range / 2,
+						Math.random() * multiPointCloudContr.range - multiPointCloudContr.range / 2,
+      		);
+      	// 设置各个方向运动点的运动速率
+      	point.velocityY = 0.1 + Math.random() / 5;
+        point.velocityX = (Math.random() - 0.5) / 3;
+        point.velocityZ = (Math.random() - 0.5) / 3;
+        geometry.vertices.push(point);
+      }
+      // 创建点云系统
+      var pointSys = new THREE.PointCloud( geometry, material );
+      pointSys.name = name; // 设置名字
+      pointSys.sortParticles = true; // 重新排序点对象可以较好地防止对象叠加的深度冲突问题
+      return pointSys;
+		}
+
+		/**
+		 * 创建画布纹理
+		 * @return {[type]} [description]
+		 */
+		function createCanvasTexture(){
+      var canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+
+      var ctx = canvas.getContext('2d');
+      // the body
+      ctx.translate(-81, -84);
+
+      ctx.fillStyle = "orange";
+      ctx.beginPath();
+      ctx.moveTo(83, 116);
+      ctx.lineTo(83, 102);
+      ctx.bezierCurveTo(83, 94, 89, 88, 97, 88);
+      ctx.bezierCurveTo(105, 88, 111, 94, 111, 102);
+      ctx.lineTo(111, 116);
+      ctx.lineTo(106.333, 111.333);
+      ctx.lineTo(101.666, 116);
+      ctx.lineTo(97, 111.333);
+      ctx.lineTo(92.333, 116);
+      ctx.lineTo(87.666, 111.333);
+      ctx.lineTo(83, 116);
+      ctx.fill();
+
+      // the eyes
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.moveTo(91, 96);
+      ctx.bezierCurveTo(88, 96, 87, 99, 87, 101);
+      ctx.bezierCurveTo(87, 103, 88, 106, 91, 106);
+      ctx.bezierCurveTo(94, 106, 95, 103, 95, 101);
+      ctx.bezierCurveTo(95, 99, 94, 96, 91, 96);
+      ctx.moveTo(103, 96);
+      ctx.bezierCurveTo(100, 96, 99, 99, 99, 101);
+      ctx.bezierCurveTo(99, 103, 100, 106, 103, 106);
+      ctx.bezierCurveTo(106, 106, 107, 103, 107, 101);
+      ctx.bezierCurveTo(107, 99, 106, 96, 103, 96);
+      ctx.fill();
+
+      // the pupils
+      ctx.fillStyle = "blue";
+      ctx.beginPath();
+      ctx.arc(101, 102, 2, 0, Math.PI * 2, true);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(89, 102, 2, 0, Math.PI * 2, true);
+      ctx.fill();
+
+      var texture = new THREE.Texture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    };
+
+    /**
+     * 初始化需要的纹理
+     * @return {[type]} [description]
+     */
+    function initImageTextures(){
+    	snowTexture1 = THREE.ImageUtils.loadTexture("../assets/snowflake1.png");
+      snowTexture2 = THREE.ImageUtils.loadTexture("../assets/snowflake2.png");
+      snowTexture3 = THREE.ImageUtils.loadTexture("../assets/snowflake3.png");
+      snowTexture4 = THREE.ImageUtils.loadTexture("../assets/snowflake5.png");
+
+      spriteTexture = THREE.ImageUtils.loadTexture("../assets/sprite-sheet.png");
+    }
+
+    /**
+     * 用于每次重新获取纹理
+     * @return {[type]} [description]
+     */
+    function getTexture(){
+    	var texture = THREE.ImageUtils.loadTexture("../assets/sprite-sheet.png");
+    	return texture;
+    }
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
