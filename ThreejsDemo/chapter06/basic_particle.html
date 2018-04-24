@@ -31,12 +31,13 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var particleSys, pointCloud, spriteGroup;
+		var particleSys, pointCloud, spriteGroup, torusKnot;
 		// 场景相关控制变量
 		var step = 0; // 记录弹跳的增量
     var controls,
     		pointCloudContr,
     		multiPointCloudContr,
+    		torusKnotContr,
     		spriteGroupContr;
     var pointCloudFolder, 
     		multiPointCloudFolder,
@@ -133,10 +134,49 @@
 					scene.add(spriteGroup);
         }
 	    }
+	    torusKnotContr = new function(){
+	    	this.radius = 10; // 整个扭结的半径，默认100
+	    	this.tube = 2; // 管道直径，默认40
+	    	this.radialSegments = 64; // 管道数(直)，默认64
+	    	this.tubularSegments = 8; // 管道边圆的划分数，默认8
+	    	// 通过调节这两个参数可以绘制出各种有趣形态的扭结体，可通过试验来想要的几何体
+	    	this.p = 2; 
+	    	this.q = 2;
+	    	this.heightScale = 1; // 伸展整个扭结
+	    	this.color = 0xFFFFFF;
+	    	this.size = 3;
+	    	this.transparent = true;
+	    	this.isPointCloud = true; // 是否展示点云
+	    	this.reDraw = function(){
+	    		removeObjects();
+	    		var geometry = new THREE.TorusKnotGeometry(
+	    			torusKnotContr.radius,
+	    			torusKnotContr.tube,
+	    			Math.round(torusKnotContr.radialSegments), // 必须为整数
+	    			Math.round(torusKnotContr.tubularSegments), // 必须为整数
+	    			Math.round(torusKnotContr.p), // 必须为整数
+	    			Math.round(torusKnotContr.q), // 必须为整数
+	    			torusKnotContr.heightScale,
+	    		);
+	    		if(torusKnotContr.isPointCloud){
+	    			var options = {
+	    				color: torusKnotContr.color,
+              size: torusKnotContr.size,
+              transparent: torusKnotContr.transparent,
+              blending: THREE.AdditiveBlending,
+              map: generateCustomTexture()
+	    			}
+	    			torusKnot = createPointCloudByGeom(geometry, options);
+	    		}else{
+	    			torusKnot = createMesh(geometry);
+	    		}
+	    		scene.add(torusKnot);
+	    	}
+	    }
 
     	gui = new dat.GUI();
     	gui.add(controls, 'rotationSpeed', 0, 0.02);
-    	gui.add(controls, 'type', ["demo1", "demo2", "demo3", "demo4"]).onChange(function(e){
+    	gui.add(controls, 'type', ["demo1", "demo2", "demo3", "demo4", "demo5"]).onChange(function(e){
     		removeObjects();
     		closeAllFolder();
     		switch(e){
@@ -154,7 +194,11 @@
     			case "demo4":
     				spriteGroupContr.reDraw();
     				spriteGroupFolder.open();
-    				break;	
+    				break;
+    			case "demo5":
+    				torusKnotContr.reDraw();
+    				torusKnotFolder.open();
+    				break;		
     		}
     	});
 
@@ -187,6 +231,20 @@
     	spriteGroupFolder.addColor(spriteGroupContr, 'color').onChange(spriteGroupContr.reDraw);
     	spriteGroupFolder.add(spriteGroupContr, 'sizeAttenuation').onChange(spriteGroupContr.reDraw);
     	spriteGroupFolder.add(spriteGroupContr, 'range', 100, 1000).onChange(spriteGroupContr.reDraw);
+
+    	torusKnotFolder = gui.addFolder("GeomToPointCloud");
+    	torusKnotFolder.add(torusKnotContr, 'radius', 0, 40).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'tube', 0, 4).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'radialSegments', 0, 400).step(1).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'tubularSegments', 1, 20).step(1).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'p', 1, 10).step(1).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'q', 1, 15).step(1).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'heightScale', 1, 5).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'isPointCloud').onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'size', 0, 10).onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.add(torusKnotContr, 'transparent').onChange(torusKnotContr.reDraw);
+    	torusKnotFolder.addColor(torusKnotContr, 'color').onChange(torusKnotContr.reDraw);
+
     }
 
     /**
@@ -220,7 +278,10 @@
 
     	if(controls.type == 'demo4'){
     		spriteGroup.rotation.x += controls.rotationSpeed;
+    	}
 
+    	if(controls.type == 'demo5'){
+    		torusKnot.rotation.y += controls.rotationSpeed;
     	}
 
     	// 使用帧动画函数
@@ -236,6 +297,7 @@
     	scene.remove(particleSys);
     	scene.remove(pointCloud);
     	scene.remove(spriteGroup);
+    	scene.remove(torusKnot);
     	// 移除多个点云系统
     	var toRemovePointSys = [];
     	scene.children.forEach(function(child){
@@ -254,6 +316,7 @@
     function closeAllFolder(){
     	pointCloudFolder.close();
     	multiPointCloudFolder.close();
+    	torusKnotFolder.close();
     }
 
     /**
@@ -314,6 +377,71 @@
 			initControler();
 			// 开始渲染
 			render();
+		}
+
+		/**
+		 * 使用画布生成自定义纹理对象
+		 * @return {[type]} [description]
+		 */
+		function generateCustomTexture(){
+			// 创建画布
+			var canvas = document.createElement('canvas');
+			canvas.width = 16;
+			canvas.height = 16;
+			// 获取上下文
+			var context = canvas.getContext('2d');
+			// 获取渐变处理对象
+			// 参数：
+			// x0	渐变的开始圆的 x 坐标
+			// y0	渐变的开始圆的 y 坐标
+			// r0	开始圆的半径
+			// x1	渐变的结束圆的 x 坐标
+			// y1	渐变的结束圆的 y 坐标
+			// r1	结束圆的半径
+			var gradient = context.createRadialGradient(
+				canvas.width / 2, 
+				canvas.height / 2, 
+				0, 
+				canvas.width / 2, 
+				canvas.height / 2, 
+				canvas.width / 2
+			);
+			// 参数：
+			// stop 介于 0.0 与 1.0 之间的值，表示渐变中开始与结束之间的位置。
+			// color 在结束位置显示的 CSS 颜色值
+			gradient.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+      gradient.addColorStop(0.4, 'rgba(0,0,64,1)');
+      gradient.addColorStop(1, 'rgba(0,0,0,1)');
+      // 设置填充绘画的模式 context.fillStyle=color|gradient|pattern;
+      context.fillStyle = gradient;
+      // 绘制已填充绘画的矩形，x,y(矩形左上角)  width,height
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      // 创建纹理对象
+      var texture = new THREE.Texture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+		}
+
+		/**
+		 * 创建网格对象
+		 * @param  {[type]} geometry [description]
+		 * @return {[type]}          [description]
+		 */
+		function createMesh(geometry){
+			// 创建法向量材质
+			var normalMaterial = new THREE.MeshNormalMaterial();
+			normalMaterial.side = THREE.DoubleSide;
+			// 创建基础材质
+			var basicMaterial = new THREE.MeshBasicMaterial();
+			// 开启网格模式
+			basicMaterial.wireframe = true;
+			// 组合两种材质
+			var mesh = THREE.SceneUtils.createMultiMaterialObject( 
+				geometry,
+				[normalMaterial, basicMaterial]
+			);
+			return mesh;
 		}
 
 		/**
@@ -431,6 +559,17 @@
 		}
 
 		/**
+		 * 根据几何体绘制点云系统
+		 * @return {[type]} [description]
+		 */
+		function createPointCloudByGeom(geometry, options){
+			var material = new THREE.PointCloudMaterial(options);
+      var pointCloud = new THREE.PointCloud(geometry, material);
+      pointCloud.sortParticles = true;
+      return pointCloud;
+		}
+
+		/**
 		 * 创建画布纹理
 		 * @return {[type]} [description]
 		 */
@@ -496,8 +635,6 @@
       snowTexture2 = THREE.ImageUtils.loadTexture("../assets/snowflake2.png");
       snowTexture3 = THREE.ImageUtils.loadTexture("../assets/snowflake3.png");
       snowTexture4 = THREE.ImageUtils.loadTexture("../assets/snowflake5.png");
-
-      spriteTexture = THREE.ImageUtils.loadTexture("../assets/sprite-sheet.png");
     }
 
     /**

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<!-- 场景导出 -->
+	<script type="text/javascript" src="../lib/SceneExporter.js"></script>
+	<!-- 场景导入 -->
+	<script type="text/javascript" src="../lib/loader/SceneLoader.js"></script>
+	<!-- obj加载 -->
+	<script type="text/javascript" src="../lib/loader/OBJLoader.js"></script>
+	<script type="text/javascript" src="../lib/loader/MTLLoader.js"></script>
+	<script type="text/javascript" src="../lib/loader/OBJMTLLoader.js"></script>
+	<!-- collada加载 -->
+	<script type="text/javascript" src="../lib/loader/ColladaLoader.js"></script>
+	<!-- STL加载 -->
+	<script type="text/javascript" src="../lib/loader/STLLoader.js"></script>
+	<!-- CTM加载 -->
+	<script type="text/javascript" src="../lib/loader/CTMLoader.js"></script>
+	<script type="text/javascript" src="../lib/loader/ctm.js"></script>
+	<!-- <script type="text/javascript" src="../lib/loader/CTMWorker.js"></script> -->
+	<script type="text/javascript" src="../lib/loader/lzma.js"></script>
+	<!-- VTK加载 -->
+	<script type="text/javascript" src="../lib/loader/VTKLoader.js"></script>
+	<!-- PDB加载 -->
+	<script type="text/javascript" src="../lib/loader/PDBLoader.js"></script>
+	<!-- PLY加载 -->
+	<script type="text/javascript" src="../lib/loader/PLYLoader.js"></script>
+	<!-- AWD加载 -->
+	<script type="text/javascript" src="../lib/loader/AWDLoader.js"></script>
+	<!-- ASSIMP加载 -->
+	<script type="text/javascript" src="../lib/loader/AssimpJSONLoader.js"></script>
+	<!-- VRML加载 -->
+	<script type="text/javascript" src="../lib/loader/VRMLLoader.js"></script>
+	<!-- BABYLON加载 -->
+	<script type="text/javascript" src="../lib/loader/BabylonLoader.js"></script>
+
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var torusKnot, 
+				tempTorusKnot, 
+				cube, 
+				sphere, 
+				chair, 
+				butterfly, 
+				truck, 
+				manHead, 
+				tyre, 
+				stone, 
+				molecule, 
+				car, 
+				bear,
+				spider,
+				vrmlModel,
+				skull;
+		var torusKnotJson,
+				sceneJson;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls,
+    		torusKnotContr,
+    		sceneContr,
+    		loadObjContr;
+    var torusKnotFolder,
+    		sceneFolder,
+    		loadObjFolder;	
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.02; // 旋转速度
+	      this.bouncingSpeed = 0.03; // 弹跳速度
+	     	this.type = 'save_json_object';
+	     	this.dark_night = false; // 进入夜间模式，便于观察效果
+	    };
+	    torusKnotContr = new function(){
+	    	this.radius = 10; // 整个扭结的半径，默认100
+	    	this.tube = 2; // 管道直径，默认40
+	    	this.radialSegments = 64; // 管道数(直)，默认64
+	    	this.tubularSegments = 8; // 管道边圆的划分数，默认8
+	    	// 通过调节这两个参数可以绘制出各种有趣形态的扭结体，可通过试验来想要的几何体
+	    	this.p = 2; 
+	    	this.q = 2;
+	    	this.heightScale = 1; // 伸展整个扭结
+	    	this.reDrawMesh = function(){
+	    		removeObjects();
+	    		torusKnot = createMesh(new THREE.TorusKnotGeometry(
+	    			torusKnotContr.radius,
+	    			torusKnotContr.tube,
+	    			Math.round(torusKnotContr.radialSegments), // 必须为整数
+	    			Math.round(torusKnotContr.tubularSegments), // 必须为整数
+	    			Math.round(torusKnotContr.p), // 必须为整数
+	    			Math.round(torusKnotContr.q), // 必须为整数
+	    			torusKnotContr.heightScale,
+	    		))
+	    		scene.add(torusKnot)
+	    	}
+	    	this.save = function(){
+	    		// 保存当前模型为json
+	    		torusKnotJson = JSON.stringify(torusKnot.toJSON()); // 把当前模型数据转换成json数据
+	    		// 可从json中可见，保存下来的是原始几何体，将所有的顶点和面都保存了下来，并不知道实际是什么几何体（直观上）
+	    		console.log(torusKnotJson);
+	    		// 如果要持久保存，可保存至本地存储
+	    		// localStorage = setItem('torusKnotJson', JSON.stringify(torusKnot.toJSON()));
+	    	}
+	    	this.load = function(){
+	    		if(torusKnotJson){
+	    			scene.remove(tempTorusKnot)
+	    			// 加载json对象并解析为几何体对象
+	    			var loadGeometry = JSON.parse(torusKnotJson);
+	    			// 创建加载器，用于json到w网格对象的转化
+	    			var loader = new THREE.ObjectLoader();
+	    			tempTorusKnot = loader.parse(loadGeometry);
+	    			// 设置个其他位置用于识别
+	    			tempTorusKnot.position.x -= 30;
+	    			scene.add(tempTorusKnot);
+	    		}
+	    	}
+	    }
+	    sceneContr = new function(){
+	    	this.exportScene = function(){
+	    		// 该导出器创建的json数据明确描述了场景中所有对象的数据
+	    		var exporter = new THREE.SceneExporter();
+	    		sceneJson = JSON.stringify(exporter.parse(scene));
+	    		console.log(sceneJson);
+	    	}
+	    	this.clearScene = function(){
+	    		scene = new THREE.Scene();
+	    	}
+	    	this.importScene = function(){
+	    		var sceneLoader = new THREE.SceneLoader();
+	    		sceneLoader.parse(JSON.parse(sceneJson), function(e){
+	    			scene = e.scene;
+	    		}, '.'); // 最后一个参数”.“是一个URL相对地址，如果场景中有引用纹理的话就需要提供相对地址，
+	    		// 与GeometryLoader一样可直接加载json文件
+	    	}
+	    }
+	    loadObjContr = new function(){
+	    	
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.add(controls, 'dark_night').onChange(function(e){
+    		if(e){
+    			renderer.setClearColor(new THREE.Color( 0x000000, 1.0 ));
+    		}else{
+    			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+    		}
+    	})
+    	gui.add(controls, 'type', [
+    		"save_json_object",
+    		"save_json_scene",
+    		"load_obj_mtl",
+    		"load_collada",
+    		"load_stl",
+    		"load_ctm",
+    		"load_vtk",
+    		"load_pdb",
+    		"load_ply",
+    		"load_awd",
+    		"load_assimp",
+    		"load_vrml",
+    		"load_babylon"
+    		]).onChange(function(e){
+    		removeObjects();
+    		closeAllFolder();
+    		switch(e){
+    			case "save_json_object":
+    				torusKnotContr.reDrawMesh();
+    				torusKnotFolder.open();
+    				break;
+    			case "save_json_scene":
+    			  // 创建立方体
+						var cubeGeometry = new THREE.BoxGeometry( 4, 4, 4 );
+						var cubeMaterial = new THREE.MeshLambertMaterial( {color: 0xFF0000} );
+						cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
+						cube.position.x = -4;
+						cube.position.y = 3;
+						cube.position.z = 0;
+						scene.add(cube);
+
+						// 创建球体
+						var sphereGeometry = new THREE.SphereGeometry( 4, 20, 20 );
+						var sphereMaterial = new THREE.MeshLambertMaterial( {color: 0x7777FF} );
+						sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
+						sphere.position.x = 20;
+						sphere.position.y = 0;
+						sphere.position.z = 0;
+						scene.add(sphere);
+
+						sceneFolder.open();
+    				break;
+    			case "load_obj_mtl":
+    				var loader = new THREE.OBJMTLLoader();
+    				// 椅子模型, 该模型是直接从Blender中导出的
+    				loader.load('../assets/models/misc_chair01.obj', '../assets/models/misc_chair01.mtl', function(obj){
+    					chair = obj;
+    					chair.scale.set(10, 10, 10);
+    					chair.position.set(20, 0, 0);
+    					scene.add(chair);
+    				})
+    				
+    				loader.load("../assets/models/butterfly.obj", "../assets/models/butterfly.mtl", function(obj){
+    					// 这里要注意，加载出来的模型可能与实际不符，因此要从对象中寻找相关子类对象，并赋予合适的特性
+    					var wing2 = obj.children[5].children[0]; // 直接引用修改里面的子对象
+	            var wing1 = obj.children[4].children[0];
+
+	            wing1.material.opacity = 0.6;
+	            wing1.material.transparent = true;
+	            wing1.material.depthTest = false;
+	            wing1.material.side = THREE.DoubleSide;
+
+	            wing2.material.opacity = 0.6;
+	            wing2.material.depthTest = false;
+	            wing2.material.transparent = true;
+	            wing2.material.side = THREE.DoubleSide;
+
+    					butterfly = obj;
+    					console.log(obj);
+    					butterfly.scale.set(100, 100, 100);
+    					butterfly.position.set(-20, 0, 0);
+    					scene.add(butterfly);
+    				})
+    				break;
+    			case "load_collada":
+    				var loader = new THREE.ColladaLoader();
+    				loader.load("../assets/models/dae/Truck_dae.dae", function(result){
+    					console.log(result);
+    					// 根据加载出来的数据结构解析可知：
+    					truck = result.scene.children[0].children[0].clone();
+    					scene.add(truck);
+    				})
+    				break;
+    			case "load_stl":
+    				var loader = new THREE.STLLoader();
+    				loader.load("../assets/models/SolidHead_2_lowPoly_42k.stl", function(result){
+    					console.log(result);
+    					// result是一个THREE.Geometry对象，因此只能自己给网格添加材质
+    					var material = new THREE.MeshLambertMaterial({ color: 0x7777FF });
+    					manHead = new THREE.Mesh( result, material );
+    					manHead.rotation.x = -0.5 * Math.PI;
+    					manHead.position.y = -10;
+    					manHead.scale.set(0.2, 0.2, 0.2);
+    					scene.add(manHead);
+    				})
+    				break;
+    			case "load_ctm":
+    				var loader = new THREE.CTMLoader();
+    				loader.load("../assets/models/auditt_wheel.ctm", function(result){
+    					console.log(result);
+    					// result是一个THREE.Geometry对象，因此只能自己给网格添加材质
+    					var material = new THREE.MeshLambertMaterial({ color: 0x7777FF });
+    					tyre = new THREE.Mesh( result, material );
+    					tyre.scale.set(50, 50, 50);
+    					scene.add(tyre);
+    				}, {}); // 注意有第三个参数
+    				break;
+    			case "load_vtk":
+    				var loader = new THREE.VTKLoader();
+    				loader.load("../assets/models/moai_fixed.vtk", function(result){
+    					console.log(result);
+    					// result是一个THREE.Geometry对象，因此只能自己给网格添加材质
+    					var material = new THREE.MeshLambertMaterial({ color: 0x7777FF });
+    					stone = new THREE.Mesh( result, material );
+    					stone.scale.set(20, 20, 20);
+    					scene.add(stone);
+    				})
+    				break;
+    			case "load_pdb":
+    				var loader = new THREE.PDBLoader();
+    				// 这种模型主要是一些分子模型，可分解成多个小球和管道路径
+    				// 因此要创建一个组对象来合并起来
+    				molecule = new THREE.Object3D();
+    				loader.load("../assets/models/aspirin.pdb", function(geometry, geometryBonds){
+    					console.log(geometry); // 小球组
+    					console.log(geometryBonds); // 关联骨架
+    					var i = 0;
+    					// 生成多个小球
+    					geometry.vertices.forEach(function(position){
+    						var sphere = new THREE.SphereGeometry(0.2);
+    						// 创建phong材质
+    						var material = new THREE.MeshPhongMaterial( {color: geometry.colors[i++]} );
+    						var mesh = new THREE.Mesh(sphere, material);
+    						mesh.position.copy(position);
+    						molecule.add(mesh);
+    					})
+    					// 生成连接小球的多条管道, 每两条绘制一个管道
+    					for(var j=0; j<geometryBonds.vertices.length; j += 2){
+    						// 创建轨迹
+    						var path = new THREE.SplineCurve3([geometryBonds.vertices[j], geometryBonds.vertices[j + 1]]);
+    						// 创建管道图形
+    						var tube = new THREE.TubeGeometry(path, 1, 0.04);
+    						var material = new THREE.MeshPhongMaterial( {color: 0xCCCCCC} );
+    						var mesh = new THREE.Mesh( tube, material );
+    						molecule.add(mesh);
+    					}
+    					molecule.scale.set(5, 5, 5);
+    					scene.add(molecule);
+    				})
+    				break;
+    			case "load_ply":
+    				var loader = new THREE.PLYLoader();
+    				loader.load("../assets/models/test.ply", function(result){
+    					console.log(result);
+    					// result是一个THREE.Geometry对象，因此只能自己给网格添加材质
+    					// 这里提供普通材质无法展示实际效果，因此采用点云的模式来生成
+    					var material = new THREE.PointCloudMaterial( {
+    						color: 0xFFFFFF,
+    						size: 1,
+    						opacity: 0.6,
+                transparent: true,
+    						blending: THREE.AdditiveBlending,
+    						map: generateCustomTexture()
+    					} );
+    					car = new THREE.PointCloud( result, material );
+    					car.scale.set(3, 3, 3);
+    					scene.add(car);
+    				})
+    				break;
+    			case "load_awd":
+    				var loader = new THREE.AWDLoader();
+    				bear = new THREE.Object3D(); // 这里必须先实例化成Object3D对象
+    				loader.load("../assets/models/awd/PolarBear.awd", function(result){
+    					console.log(result);
+    					// 由打印结果看出结果对象中网格对象的层级较深，需要逐层遍历找到网格对象并添加材质处理
+    					result.traverse(function(children){
+    						if(children instanceof THREE.Mesh){
+    							children.material = new THREE.MeshLambertMaterial({color: 0xaaaaaa});
+    						}
+    					})
+    					bear = result;
+    					bear.scale.set(0.1, 0.1, 0.1);
+    					scene.add(bear);
+    				});
+    				break;
+    			case "load_assimp":
+    				var loader = new THREE.AssimpJSONLoader();
+    				loader.load("../assets/models/assimp/spider.obj.assimp.json", function(result){
+    					console.log(result);
+    					// 由打印结果看出结果对象中网格对象的层级较深，需要逐层遍历找到网格对象
+    					spider = result;
+    					spider.scale.set(0.2, 0.2, 0.2);
+    					scene.add(spider);
+    				})
+    				break;
+    			case "load_vrml":
+    				var loader = new THREE.VRMLLoader();
+    				loader.load("../assets/models/vrml/tree.wrl", function(result){
+    					console.log(result);
+    					// 该对象是个场景对象
+    					// 由打印结果看出结果对象中网格对象的层级较深，需要逐层遍历找到网格对象
+    					vrmlModel = result;
+    					vrmlModel.scale.set(10, 10, 10);
+    					scene.add(vrmlModel);
+    				})
+    				break;
+    			case "load_babylon":
+    				var loader = new THREE.BabylonLoader();
+    				loader.load("../assets/models/skull.babylon", function(result){
+    					console.log(result);
+    					// 该对象是个场景对象,可以包含整个完整场景
+    					// 这里直接加载材质上会有影响观察，则更换网格材质
+    					result.children[1].material = new THREE.MeshLambertMaterial();
+    					skull = result;
+    					skull.position.set(0, -10, -40);
+    					skull.scale.set(0.8, 0.8, 0.8);
+    					scene.add(skull);
+    				})
+    				break;	
+    		}
+    	});
+
+    	torusKnotFolder = gui.addFolder("Save_Json_Object");
+    	torusKnotFolder.add(torusKnotContr, 'radius', 0, 40).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'tube', 0, 4).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'radialSegments', 0, 400).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'tubularSegments', 1, 20).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'p', 1, 10).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'q', 1, 15).step(1).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'heightScale', 1, 5).onChange(torusKnotContr.reDrawMesh);
+    	torusKnotFolder.add(torusKnotContr, 'save');
+    	torusKnotFolder.add(torusKnotContr, 'load');
+
+    	sceneFolder = gui.addFolder("Save_Json_Scene");
+    	sceneFolder.add(sceneContr, 'exportScene');
+    	sceneFolder.add(sceneContr, 'clearScene');
+    	sceneFolder.add(sceneContr, 'importScene');
+
+    }
+
+    function removeObjects(){
+    	scene.remove(torusKnot);
+    	scene.remove(tempTorusKnot);
+    	scene.remove(cube);
+    	scene.remove(sphere);
+    	scene.remove(chair);
+    	scene.remove(butterfly);
+    	scene.remove(truck);
+    	scene.remove(manHead);
+    	scene.remove(tyre);
+    	scene.remove(stone);
+    	scene.remove(molecule);
+    	scene.remove(car);
+			scene.remove(bear);
+			scene.remove(spider);
+			scene.remove(vrmlModel);
+			scene.remove(skull);
+    }
+
+    function closeAllFolder(){
+    	torusKnotFolder.close();
+    	sceneFolder.close();
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	
+    	if(controls.type == 'save_json_object'){
+    		torusKnot.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'save_json_scene'){
+    		// 旋转立方体
+	    	cube.rotation.x += controls.rotationSpeed;
+	    	cube.rotation.y += controls.rotationSpeed;
+	    	cube.rotation.z += controls.rotationSpeed;
+	    	// 使球体弹跳
+	    	step += controls.bouncingSpeed;
+	    	var originX = 20;
+	    	sphere.position.x = originX + 10 * Math.cos(step);
+	    	sphere.position.y = 4 + 10 * Math.abs(Math.sin(step)); // 运动象限控制在一二象限，球半径4
+    	}
+
+    	if(controls.type == 'load_obj_mtl' && chair && butterfly){
+    		chair.rotation.y += controls.rotationSpeed;
+    		butterfly.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_collada' && truck){
+    		truck.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_stl' && manHead){
+    		manHead.rotation.z += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_ctm' && tyre){
+    		tyre.rotation.x += controls.rotationSpeed;
+	    	tyre.rotation.y += controls.rotationSpeed;
+	    	tyre.rotation.z += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_vtk' && stone){
+    		stone.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_pdb' && molecule){
+    		molecule.rotation.x += controls.rotationSpeed;
+	    	molecule.rotation.y += controls.rotationSpeed;
+	    	molecule.rotation.z += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_ply' && car){
+    		car.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_awd' && bear){
+    		bear.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_assimp' && spider){
+    		spider.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_vrml' && vrmlModel){
+    		vrmlModel.rotation.y += controls.rotationSpeed;
+    	}
+
+    	if(controls.type == 'load_babylon' && skull){
+    		skull.rotation.y += controls.rotationSpeed;
+    	}
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 0;
+			camera.position.y = 30;
+			camera.position.z = 60;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+      // 配置控制器
+			initControler();
+
+			torusKnotContr.reDrawMesh();
+    	torusKnotFolder.open();
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			var directionLight = new THREE.DirectionalLight( 0xFFFFFF );
+			directionLight.position.set(-40, 60, -10);
+			scene.add(directionLight);
+
+			// 场景导出时点光源貌似有些问题，因此更换为平行光
+			// 添加点光源,作为产生阴影的光源
+			// var spotLight = new THREE.SpotLight(0xFFFFFF);
+			// spotLight.position.set(-40, 60, -10);
+			// spotLight.castShadow = true;
+			// scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 使用画布生成自定义纹理对象
+		 * @return {[type]} [description]
+		 */
+		function generateCustomTexture(){
+			// 创建画布
+			var canvas = document.createElement('canvas');
+			canvas.width = 16;
+			canvas.height = 16;
+			// 获取上下文
+			var context = canvas.getContext('2d');
+			// 获取渐变处理对象
+			// 参数：
+			// x0	渐变的开始圆的 x 坐标
+			// y0	渐变的开始圆的 y 坐标
+			// r0	开始圆的半径
+			// x1	渐变的结束圆的 x 坐标
+			// y1	渐变的结束圆的 y 坐标
+			// r1	结束圆的半径
+			var gradient = context.createRadialGradient(
+				canvas.width / 2, 
+				canvas.height / 2, 
+				0, 
+				canvas.width / 2, 
+				canvas.height / 2, 
+				canvas.width / 2
+			);
+			// 参数：
+			// stop 介于 0.0 与 1.0 之间的值，表示渐变中开始与结束之间的位置。
+			// color 在结束位置显示的 CSS 颜色值
+			gradient.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+      gradient.addColorStop(0.4, 'rgba(64,0,0,1)');
+      gradient.addColorStop(1, 'rgba(0,0,0,1)');
+      // 设置填充绘画的模式 context.fillStyle=color|gradient|pattern;
+      context.fillStyle = gradient;
+      // 绘制已填充绘画的矩形，x,y(矩形左上角)  width,height
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      // 创建纹理对象
+      var texture = new THREE.Texture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+		}
+
+		/**
+		 * 创建网格对象
+		 * @param  {[type]} geometry [description]
+		 * @return {[type]}          [description]
+		 */
+		function createMesh(geometry){
+			// 创建法向量材质
+			var normalMaterial = new THREE.MeshNormalMaterial();
+			normalMaterial.side = THREE.DoubleSide;
+			// 创建基础材质
+			var basicMaterial = new THREE.MeshBasicMaterial();
+			// 开启网格模式
+			basicMaterial.wireframe = true;
+			// 组合两种材质
+			var mesh = THREE.SceneUtils.createMultiMaterialObject( 
+				geometry,
+				[normalMaterial, basicMaterial]
+			);
+			return mesh;
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
