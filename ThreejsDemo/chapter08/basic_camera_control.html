@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+
+	.selectContr{
+		position: absolute;
+		top: 0px;
+		right: 10px;
+
+		width: 130px;
+		/*height: 30px;*/
+		background: #000000;
+	}
+
+	.selectContr ul{
+		list-style: none;
+		padding: 0;
+		margin: 0;
+	}
+
+	.selectContr ul li{
+		padding: 5px 10px;
+
+		color: #FFFFFF;
+		border-bottom: 4px solid #FFFFFF;
+
+		cursor: pointer;
+	}
+
+	.selectContr ul li.selected{
+		border-bottom: 4px solid #03a9f4;
+	}
+
+
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+
+	<!-- 由于dat.gui存在向下冒泡的bug -->
+	<div class="selectContr" id="select-contr">
+		<ul>
+			<li class="select_list" data-id="1">trackball</li>
+			<li class="select_list" data-id="2">fly</li>
+			<li class="select_list" data-id="3">roll</li>
+			<li class="select_list" data-id="4">first_person</li>
+			<li class="select_list" data-id="5">orbit</li>
+		</ul>
+	</div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+
+	<!-- obj加载 -->
+	<script type="text/javascript" src="../lib/loader/OBJLoader.js"></script>
+	<script type="text/javascript" src="../lib/loader/MTLLoader.js"></script>
+	<script type="text/javascript" src="../lib/loader/OBJMTLLoader.js"></script>
+
+	<script type="text/javascript" src="../lib/controls/FirstPersonControls.js"></script>
+	<script type="text/javascript" src="../lib/controls/FlyControls.js"></script>
+	<script type="text/javascript" src="../lib/controls/RollControls.js"></script>
+	<script type="text/javascript" src="../lib/controls/TrackballControls.js"></script>
+	<script type="text/javascript" src="../lib/controls/OrbitControls.js"></script>
+
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui-new.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var city;
+		var CONTROL_TYPE = {
+			TRACK_BALL: 1,
+			FLY: 2,
+			ROLL: 3,
+			FIRST_PERSON: 4,
+			ORBIT: 5
+		};
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls;
+    // 场景相机控制器组件
+    var trackballControls,
+    		rollControls,
+    		flyControls,
+    		fsControls,
+    		orbitControls;
+    // 时钟对象
+    var clock;
+    
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	    	this.controlType = 0;
+	    };
+
+    	document.getElementById("select-contr").addEventListener('click', function(e){
+				var selectList = document.getElementsByClassName("select_list");
+				for(var i=0;i<selectList.length;i++){
+					selectList[i].classList.remove("selected");
+				}
+				switch(parseInt(e.target.dataset.id)){
+					case CONTROL_TYPE.TRACK_BALL:
+						controls.controlType = CONTROL_TYPE.TRACK_BALL;
+						selectList[0].classList.add("selected");
+
+						resetCamera();
+     				trackballControls = new THREE.TrackballControls(camera);
+						break;
+					case CONTROL_TYPE.FLY:
+						controls.controlType = CONTROL_TYPE.FLY;
+						selectList[1].classList.add("selected");
+
+						resetCamera();
+						flyControls = new THREE.FlyControls(camera);
+						// 需要做一些必要配置
+						flyControls.movementSpeed = 10;
+		        flyControls.domElement = document.querySelector("#webgl-output");
+		        flyControls.rollSpeed = Math.PI / 24;
+		        flyControls.autoForward = true;
+        		flyControls.dragToLook = false;
+						break;
+					case CONTROL_TYPE.ROLL:
+						controls.controlType = CONTROL_TYPE.ROLL;
+						selectList[2].classList.add("selected");
+						resetCamera();
+						rollControls = new THREE.RollControls(camera);
+						break;
+					case CONTROL_TYPE.FIRST_PERSON:
+						controls.controlType = CONTROL_TYPE.FIRST_PERSON;
+						selectList[3].classList.add("selected");
+
+						resetFirstPersenCamera();
+						fsControls = new THREE.FirstPersonControls(camera);
+		        fsControls.lookSpeed = 0.05;
+		        fsControls.movementSpeed = 10;
+		        fsControls.noFly = true;
+		        fsControls.lookVertical = true;
+		        fsControls.constrainVertical = true;
+		        fsControls.verticalMin = 1.0;
+		        fsControls.verticalMax = 2.0;
+		        fsControls.lon = -150;
+		        fsControls.lat = 120;
+						break;
+					case CONTROL_TYPE.ORBIT:
+						controls.controlType = CONTROL_TYPE.ORBIT;
+						selectList[4].classList.add("selected");
+
+						resetCamera();
+						orbitControls = new THREE.OrbitControls(camera);
+						orbitControls.autoRotate = true;
+						break;
+				}
+			})
+    }
+
+    /**
+     * 重置相机
+     * @return {[type]} [description]
+     */
+    function resetCamera(){
+    	camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 100;
+			camera.position.y = 100;
+			camera.position.z = 300;
+			camera.lookAt(scene.position); // 视线指向场景中心
+    }
+
+    function resetFirstPersenCamera(){
+    	camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 100;
+			camera.position.y = 5;
+			camera.position.z = 10;
+			camera.lookAt(new THREE.Vector3(0, 0, 0)); // 视线指向世界原点
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	// 获取与上次调用的间隔秒数，并设置当前时间作为下次调用的间隔计算
+    	// 这里不直接把帧率(1/60s)传递给update，是因为页面上的帧率是受外界性能影响的，不能保证一直是稳定值。
+    	// 为了保证相机能够平缓地移动和旋转，需要准确传入时间差。
+    	var delta = clock.getDelta();
+    	
+    	if(controls.controlType == CONTROL_TYPE.TRACK_BALL){
+    		trackballControls.update(delta);
+    	}
+    	if(controls.controlType == CONTROL_TYPE.ROLL){
+    		rollControls.update(delta);
+    	}
+    	if(controls.controlType == CONTROL_TYPE.FLY){
+    		flyControls.update(delta);
+    	}
+    	if(controls.controlType == CONTROL_TYPE.FIRST_PERSON){
+    		fsControls.update(delta);
+    	}
+    	if(controls.controlType == CONTROL_TYPE.ORBIT){
+    		orbitControls.update(delta);
+    	}
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+
+			// 初始化相机
+			resetCamera();
+
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+     	
+     	// 初始化时钟
+     	clock = new THREE.Clock();
+
+     	// 创建obj-mtl加载器
+			var loader = new THREE.OBJMTLLoader();
+			loader.load("../assets/models/city.obj", "../assets/models/city.mtl", function(obj){
+				city = obj;
+				console.log(city);
+				// 从模型数据来看，如果需要更换材质，则需要递归修改
+				setRandomColors(city);
+				scene.add(city);
+			})
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加平行光
+			var directionalLight = new THREE.DirectionalLight( 0xFFFFFF );
+			// directionalLight.castShadow = true;
+			scene.add(directionalLight);
+
+
+			// 添加点光源,作为产生阴影的光源
+			// var spotLight = new THREE.SpotLight(0xFFFFFF);
+			// spotLight.position.set(-140, 160, -100);
+			// spotLight.castShadow = true;
+			// scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			// 配置控制器
+			initControler();
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 给所有网格对象设置随机颜色
+		 * @param {[type]} object [description]
+		 */
+		function setRandomColors(object) {
+      var children = object.children;
+      if (children && children.length > 0) {
+        children.forEach(function (e) {
+            setRandomColors(e)
+        });
+      } else {
+        if (object instanceof THREE.Mesh) {
+            object.material.emissive = new THREE.Color( Math.random() * 0xFFFFFF );
+            object.material.transparent = true;
+            object.material.opacity = 0.8;
+        }
+      }
+    }
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
