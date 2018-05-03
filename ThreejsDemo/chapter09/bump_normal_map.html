@@ -19,6 +19,7 @@
 	<script type="text/javascript" src="../lib/three.js"></script>
 	<script type="text/javascript" src="../lib/stats.js"></script>
 	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+  <script type="text/javascript" src="../lib/perlin.js"></script>
 
 	<script type="text/javascript">
 		
@@ -38,9 +39,11 @@
 		var step = 0; // 记录弹跳的增量
     var controls,
     		bumpContr,
-    		normalContr;
+    		normalContr,
+        canvasBumpContr;
     var bumpFolder,
-    		normalFolder;
+    		normalFolder,
+        canvasBumpFolder;
     var clock;
 
     /**
@@ -61,11 +64,19 @@
 	    	this.normalScale = 1;
 	    	this.imageName = "plaster";
 	    }
+      canvasBumpContr = new function(){
+        this.bumpScale = 1;
+        this.color = 0x77ff77;
+        this.updateCanvas = function(){
+          cubeOld.material.map = createNoiseCanvas();
+          cubeNew.material.bumpMap = createNoiseCanvas();
+        }
+      }
 
 
     	gui = new dat.GUI();
     	gui.add(controls, 'rotationSpeed', 0, 0.5);
-    	gui.add(controls, 'mapType', ["bump", "normal"]).onChange(function(type){
+    	gui.add(controls, 'mapType', ["bump", "normal", "canvas_bump"]).onChange(function(type){
     		loadTextureMeshByType(type);
     	})
     	gui.add(controls, 'isRotate').listen();
@@ -93,6 +104,15 @@
 	  		var normalTexture = THREE.ImageUtils.loadTexture("../assets/textures/general/" + imgName + "-normal.jpg");
 	  		cubeNew.material.normalMap = normalTexture;
     	})
+
+      canvasBumpFolder = gui.addFolder("canvasBump map");
+      canvasBumpFolder.add(canvasBumpContr, 'bumpScale', -2, 2).onChange(function(e){
+        cubeNew.material.bumpScale = e;
+      })
+      canvasBumpFolder.addColor(canvasBumpContr, 'color').onChange(function(e){
+        cubeNew.material.color = new THREE.Color(e);
+      })
+      canvasBumpFolder.add(canvasBumpContr, 'updateCanvas');
     }
 
     function loadTextureMeshByType(type){
@@ -131,7 +151,18 @@
     			pointLightSphere.position.set(0, 8, 15);
 					scene.add(pointLightSphere);
 					pointLight.visible = true;
-    			break;	
+    			break;
+        case "canvas_bump":
+          canvasBumpFolder.open();
+          cubeNew = createCanvasBumpMesh(cubeNewGeom, true);
+          cubeNew.rotation.y = Math.PI * 0.1;
+          cubeNew.position.set(-10, 5, 0);
+          cubeOld = createCanvasBumpMesh(cubeNewGeom, false);
+          cubeOld.rotation.y = -Math.PI * 0.1;
+          cubeOld.position.set(10, 5, 0);
+          scene.add(cubeNew);
+          scene.add(cubeOld);
+          break;  
     	}
     }
 
@@ -168,15 +199,31 @@
     		// 凹凸程度，可以沿着x,y轴进行缩放，最佳的效果是将两者等值同时缩放
     		material.normalScale.set(normalContr.normalScale, normalContr.normalScale);
     	}
-    	// 这里的几何体如果不重新计算顶点的法向量，凹凸贴图的光照效果会大打折扣
-    	// geometry.computeVertexNormals();
     	var mesh = new THREE.Mesh( geometry, material );
     	return mesh;
+    }
+
+    function createCanvasBumpMesh(geometry, isBump){
+      var material = new THREE.MeshPhongMaterial();
+      if(isBump){
+        var bumpMap = createNoiseCanvas();
+        material.color = new THREE.Color(0x77ff77);
+        material.bumpMap = bumpMap;
+        material.bumpScale = canvasBumpContr.bumpScale;
+      }else{
+        var texture = createNoiseCanvas();
+        material.map = texture;
+      }
+      // 这里的几何体如果不重新计算顶点的法向量，凹凸贴图的光照效果会大打折扣
+      geometry.computeVertexNormals();
+      var mesh = new THREE.Mesh( geometry, material );
+      return mesh;
     }
 
     function closeAllFolder(){
     	bumpFolder.close();
     	normalFolder.close();
+      canvasBumpFolder.close();
     }
 
     function removeAllMesh(){
@@ -307,7 +354,32 @@
 			render();
 		}
 
-
+    /**
+     * 创建带随机噪音的画布
+     * @return {[type]} [description]
+     */
+    function createNoiseCanvas(){
+      var canvas = document.createElement('canvas');
+      canvas.width = 256;
+      canvas.height = 256;
+      var context = canvas.getContext('2d');
+      // 当前时间戳作为噪音的seed
+      var date = new Date();
+      var perlin = new Perlin('rnd' + date.getTime());
+      for (var x = 0; x < 512; x++) {
+        for (var y = 0; y < 512; y++) {
+          var base = new THREE.Color(0xffffff);
+          var value = perlin.noise(x / 10, y / 10, 0);
+          base.multiplyScalar(value);
+          context.fillStyle = "#" + base.getHexString();
+          context.fillRect(x, y, 1, 1);
+        }
+      }
+      // 创建纹理对象
+      var texture = new THREE.Texture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
 
 		/**
      * 初始化性能检测器

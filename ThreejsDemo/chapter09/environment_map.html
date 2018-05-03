@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+	<script type="text/javascript" src="../lib/controls/OrbitControls.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var cube, sphere, polyhedron, moveGroup;
+		var pointLightSphere, pointLight;
+		var skybox;
+		var textureCube;
+		var cubeCamera;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls;
+    var orbitControls;
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.01; // 旋转速度
+	      this.reflectivity = 1;
+	      this.isRotate = false;
+	      this.setCubeNormalTexture = function(){
+	      	var texture1 = THREE.ImageUtils.loadTexture("../assets/textures/general/bathroom.jpg");
+	      	var normalTexture = THREE.ImageUtils.loadTexture("../assets/textures/general/bathroom-normal.jpg");
+	      	cube.material.map = texture1;
+	      	cube.material.normalMap = normalTexture;
+	      	cube.material.needsUpdate = true;
+	      }
+	      this.setPolyhedronNormalTexture = function(){
+	      	var texture2 = THREE.ImageUtils.loadTexture("../assets/textures/general/plaster.jpg");
+	      	var normalTexture = THREE.ImageUtils.loadTexture("../assets/textures/general/plaster-normal.jpg");
+	      	polyhedron.material.map = texture2;
+	      	polyhedron.material.normalTexture = normalTexture;
+	      	polyhedron.material.normalScale.set(2, 2);
+	      	polyhedron.material.needsUpdate = true;
+	      }
+	    };
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.1);
+    	gui.add(controls, 'reflectivity', 0, 2).onChange(function(e){
+    		cube.material.reflectivity = e;
+    		sphere.material.reflectivity = e;
+    		polyhedron.material.reflectivity = e;
+    	})
+    	gui.add(controls, 'isRotate');
+    	gui.add(controls, 'setCubeNormalTexture').listen();
+    	gui.add(controls, 'setPolyhedronNormalTexture').listen();
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	
+    	orbitControls.update();
+    	// 这里要注意：最好先隐藏球体，更新后再展示球体
+    	sphere.visible = false;
+    	cubeCamera.updateCubeMap(renderer, scene);
+    	sphere.visible = true;
+
+    	if(controls.isRotate){
+    		step += controls.rotationSpeed;
+    		cube.rotation.y = step;
+    		polyhedron.rotation.y = step;
+    		moveGroup.rotation.set(step, step, step);
+    	}
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = -30;
+			camera.position.y = 30;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 配置控制器
+			initControler();
+
+			orbitControls = new THREE.OrbitControls(camera);
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+      createCubeCamera();
+
+			createSkyBox();
+
+			createDynamicEnvMesh();
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			var directionLight = new THREE.DirectionalLight( 0xFFFFFF );
+			directionLight.intensity = 1.2;
+			directionLight.position.set(0, 40, 30);
+			scene.add(directionLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 创建天空盒
+		 * @return {[type]} [description]
+		 */
+		function createSkyBox(){
+			// 创建CubeMap纹理
+			textureCube = createCubeMap();
+			textureCube.format = THREE.RGBFormat;
+			// 创建一个自定义shader, 可结合shaderMaterial创建出一个环境效果
+			var shader = THREE.ShaderLib['cube'];
+			shader.uniforms['tCube'].value = textureCube;
+			console.log(shader);
+			var material = new THREE.ShaderMaterial( {
+				fragmentShader: shader.fragmentShader,
+				vertexShader: shader.vertexShader,
+				uniforms: shader.uniforms,
+				depthWrite: false, 
+				side: THREE.BackSide // 纹理是设置在cube内部的
+			} );
+			var cubeGeometry = new THREE.BoxGeometry( 1000, 1000, 1000 ); // 天空盒的大小要大于相机的最远距离，天空盒的效果才会出来
+			skybox = new THREE.Mesh(cubeGeometry, material);
+			scene.add(skybox);
+		}
+
+		/**
+		 * 创建立方体相机（6个相机）
+		 * @return {[type]} [description]
+		 */
+		function createCubeCamera(){
+    	cubeCamera = new THREE.CubeCamera( 0.1, 2000, 256 );
+    	// 由于只将球体赋予动态环境材质，则不需要显式定位camera的位置
+    	scene.add(cubeCamera);
+		}
+
+		/**
+     * 创建几何体对象
+     * @return {[type]} [description]
+     */
+    function createDynamicEnvMesh(){
+    	// 创建立方体
+    	var cubeGeom = new THREE.BoxGeometry(5, 5, 5);
+    	// 创建球体
+    	var sphereGeom = new THREE.SphereGeometry( 5, 20, 20 );
+    	// 创建多面体
+    	var polyhedronGeom = new THREE.IcosahedronGeometry( 5, 0 );
+    	// 创建动态环境材质
+    	var dynamicEnvMaterial = new THREE.MeshBasicMaterial( {
+    		envMap: cubeCamera.renderTarget, // 生成的立方体纹理
+    		side: THREE.DoubleSide 
+    	} );
+    	// 创建静态环境材质，这里设置个对象是为了防止相同引用
+    	var staticEnvMaterial1 = new THREE.MeshPhongMaterial( {
+    		envMap: textureCube,
+    		side: THREE.DoubleSide
+    	} );
+    	var staticEnvMaterial2 = new THREE.MeshPhongMaterial( {
+    		envMap: textureCube,
+    		side: THREE.DoubleSide
+    	} );
+    	// 以上材质如果有优化需要可都设成单面的
+    	// 给球体赋予动态环境材质
+    	sphere = new THREE.Mesh(sphereGeom, dynamicEnvMaterial);
+    	scene.add(sphere);
+    	// 给另外两个立方体设置静态环境材质
+    	cube = new THREE.Mesh(cubeGeom, staticEnvMaterial1);
+    	cube.position.x = -12;
+    	scene.add(cube);
+    	polyhedron = new THREE.Mesh(polyhedronGeom, staticEnvMaterial2);
+    	polyhedron.position.x = 12;
+    	scene.add(polyhedron);
+
+    	// 创建组对象
+    	moveGroup = new THREE.Group();
+    	moveGroup.add(cube);
+    	moveGroup.add(polyhedron);
+    	scene.add(moveGroup);
+    }
+
+		/**
+		 * 创建天空盒的纹理
+		 * @return {[type]} [description]
+		 */
+		function createCubeMap(){
+			var path = "../assets/textures/CoitTower/";
+			var format = ".jpg";
+			// forward (posz), 
+			// backward (negz), 
+			// up (posy), 
+			// down (negy), 
+			// right (posx), 
+			// left (negx).
+			// 更直观可理解 posx在正半轴，neg在负半轴
+			var urls = [
+				path + "posx" + format, path + "negx" + format,
+				path + "posy" + format, path + "negy" + format,
+				path + "posz" + format, path + "negz" + format
+			];
+			var textureCube = THREE.ImageUtils.loadTextureCube(urls);
+			return textureCube;
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
