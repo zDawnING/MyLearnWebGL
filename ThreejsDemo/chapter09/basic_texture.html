@@ -19,7 +19,11 @@
 	<script type="text/javascript" src="../lib/three.js"></script>
 	<script type="text/javascript" src="../lib/stats.js"></script>
 	<script type="text/javascript" src="../lib/dat.gui.js"></script>
-
+	<!-- texture loader -->
+	<script type="text/javascript" src="../lib/loader/DDSLoader.js"></script>
+	<!-- <script type="text/javascript" src="../lib/loader/PVRLoader.js"></script> -->
+	<script type="text/javascript" src="../lib/loader/TGALoader.js"></script>
+	
 	<script type="text/javascript">
 		
 		// 定义全局变量
@@ -31,7 +35,8 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var cube, sphere, plane;
+		var cube, sphere, polyhedron;
+		var cubeGeom, sphereGeom, polyhedronGeom;
 		// 场景相关控制变量
 		var step = 0; // 记录弹跳的增量
     var controls;
@@ -43,12 +48,102 @@
     function initControler(){
     	controls = new function () {
 	      this.rotationSpeed = 0.02; // 旋转速度
-	      this.bouncingSpeed = 0.03; // 弹跳速度
+	      this.loadTextureType = "jpg";
 	    };
 
     	gui = new dat.GUI();
     	gui.add(controls, 'rotationSpeed', 0, 0.5);
-    	gui.add(controls, 'bouncingSpeed', 0, 0.5);
+    	gui.add(controls, 'loadTextureType', ["jpg" ,"dds", "tga", "canvas"]).onChange(function(type){
+    		loadTextureGeomByType(type);
+    	})
+    }
+
+    /**
+     * 根据格式类型给几何体加载各种纹理
+     * @param  {[type]} type [description]
+     * @return {[type]}      [description]
+     */
+    function loadTextureGeomByType(type){
+    	removeAllMesh();
+    	switch(type){
+  			case "jpg":
+  				cube = createMeshLoadTexture(type, cubeGeom, "../assets/textures/general/brick-wall.jpg");
+  				sphere = createMeshLoadTexture(type, sphereGeom, "../assets/textures/general/floor-wood.jpg");
+  				polyhedron = createMeshLoadTexture(type, polyhedronGeom, "../assets/textures/general/metal-rust.jpg");
+  				break;
+  			case "dds":
+  				cube = createMeshLoadTexture(type, cubeGeom, "../assets/textures/seafloor.dds");
+  				sphere = createMeshLoadTexture(type, sphereGeom, "../assets/textures/seafloor.dds");
+  				polyhedron = createMeshLoadTexture(type, polyhedronGeom, "../assets/textures/seafloor.dds");
+  				break;
+  			// case "pvr":
+  			// 	cube = createMeshLoadTexture(type, cubeGeom, "../assets/textures/tex_base.pvr");
+  			// 	sphere = createMeshLoadTexture(type, sphereGeom, "../assets/textures/tex_base.pvr");
+  			// 	polyhedron = createMeshLoadTexture(type, polyhedronGeom, "../assets/textures/tex_base.pvr");
+  			// 	break;
+  			case "tga":
+  				cube = createMeshLoadTexture(type, cubeGeom, "../assets/textures/crate_color8.tga");
+  				sphere = createMeshLoadTexture(type, sphereGeom, "../assets/textures/crate_color8.tga");
+  				polyhedron = createMeshLoadTexture(type, polyhedronGeom, "../assets/textures/crate_color8.tga");
+  				break;
+  			case "canvas":
+  				cube = createMeshLoadTexture(type, cubeGeom, null);
+  				sphere = createMeshLoadTexture(type, sphereGeom, null);
+  				polyhedron = createMeshLoadTexture(type, polyhedronGeom, null);
+  				break;	
+  		}
+  		cube.position.x = -12;
+  		polyhedron.position.x = 12;
+  		scene.add(cube);
+			scene.add(sphere);
+			scene.add(polyhedron);
+    }
+
+    /**
+     * 创建几何体对象
+     * @return {[type]} [description]
+     */
+    function createGeometrys(){
+    	// 创建立方体
+    	cubeGeom = new THREE.BoxGeometry(5, 5, 5);
+    	// 创建球体
+    	sphereGeom = new THREE.SphereGeometry( 5, 20, 20 );
+    	// 创建多面体
+    	polyhedronGeom = new THREE.IcosahedronGeometry( 5, 0 );
+    }
+
+    function createMeshLoadTexture(type, geometry, imagePath){
+    	var texture;
+    	switch(type){
+    		case "jpg":
+    			texture = THREE.ImageUtils.loadTexture(imagePath);
+    			break;
+    		case "dds":
+    			var loader = new THREE.DDSLoader();
+    			texture = loader.load(imagePath);
+    			break;
+    		// case "pvr":
+    		// 	var loader = new THREE.PVRLoader();
+    		// 	texture = loader.load(imagePath);
+    		// 	break;
+    		case "tga":
+    			var loader = new THREE.TGALoader();
+    			texture = loader.load(imagePath);
+    			break;
+    		case "canvas":
+    			texture = generateCustomTexture();
+    			break;	
+    	}
+    	var material = new THREE.MeshPhongMaterial();
+    	material.map = texture;
+    	var mesh = new THREE.Mesh(geometry, material);
+    	return mesh;
+    }
+    
+    function removeAllMesh(){
+    	scene.remove(cube);
+    	scene.remove(sphere);
+    	scene.remove(polyhedron);
     }
 
     /**
@@ -57,15 +152,12 @@
      */
     function render(){
     	stats.update(); // 即时更新FPS
-    	// 旋转立方体
-    	cube.rotation.x += controls.rotationSpeed;
-    	cube.rotation.y += controls.rotationSpeed;
-    	cube.rotation.z += controls.rotationSpeed;
-    	// 使球体弹跳
-    	step += controls.bouncingSpeed;
-    	var originX = 20;
-    	sphere.position.x = originX + 10 * Math.cos(step);
-    	sphere.position.y = 4 + 10 * Math.abs(Math.sin(step)); // 运动象限控制在一二象限，球半径4
+    	
+    	step += controls.rotationSpeed;
+
+    	cube.rotation.set(step, step, step);
+    	sphere.rotation.set(step, step, step);
+    	polyhedron.rotation.set(step, step, step);
 
     	// 使用帧动画函数
     	requestAnimationFrame(render);
@@ -83,8 +175,8 @@
 			scene = new THREE.Scene();
 			// 创建相机
 			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
-			camera.position.x = -30;
-			camera.position.y = 30;
+			camera.position.x = 0;
+			camera.position.y = 0;
 			camera.position.z = 30;
 			camera.lookAt(scene.position); // 视线指向场景中心
 			// 创建渲染器
@@ -96,51 +188,26 @@
 			renderer.shadowMapEnabled = true; // 启用阴影贴图
 
 			// 展示辅助观察的世界坐标系
-      var axes = new THREE.AxisHelper(20);
-      scene.add(axes);
+      // var axes = new THREE.AxisHelper(20);
+      // scene.add(axes);
 
-			// 创建地面
-			var planeGeometry = new THREE.PlaneBufferGeometry( 60, 20, 1, 1 ); // 几何体类型对象
-			var planeMaterial = new THREE.MeshLambertMaterial( {color: 0xFFFFFF} ); // 材质对象
-			plane = new THREE.Mesh( planeGeometry, planeMaterial ); // 创建网格
-			plane.receiveShadow = true; // 接收阴影
-			// 旋转并设置位置
-			plane.rotation.x = -0.5 * Math.PI; // x轴旋转-90
-			plane.position.x = 15;
-			plane.position.y = 0;
-			plane.position.z = 0;
-			// 加入至场景
-			scene.add(plane);
-
-			// 创建立方体
-			var cubeGeometry = new THREE.BoxGeometry( 4, 4, 4 );
-			var cubeMaterial = new THREE.MeshLambertMaterial( {color: 0xFF0000} );
-			cube = new THREE.Mesh( cubeGeometry, cubeMaterial );
-			cube.castShadow = true; // 投射阴影
-			cube.position.x = -4;
-			cube.position.y = 3;
-			cube.position.z = 0;
-			scene.add(cube);
-
-			// 创建球体
-			var sphereGeometry = new THREE.SphereGeometry( 4, 20, 20 );
-			var sphereMaterial = new THREE.MeshLambertMaterial( {color: 0x7777FF} );
-			sphere = new THREE.Mesh( sphereGeometry, sphereMaterial );
-			sphere.castShadow = true;
-			sphere.position.x = 20;
-			sphere.position.y = 0;
-			sphere.position.z = 0;
-			scene.add(sphere);
+      createGeometrys();
+			
+			loadTextureGeomByType("jpg");
 
 			// 添加环境光
 			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
 			scene.add(ambientLight);
 
 			// 添加点光源,作为产生阴影的光源
-			var spotLight = new THREE.SpotLight(0xFFFFFF);
-			spotLight.position.set(-40, 60, -10);
-			spotLight.castShadow = true;
-			scene.add(spotLight);
+			// var spotLight = new THREE.SpotLight(0xFFFFFF);
+			// spotLight.position.set(0, 30, 10);
+			// spotLight.castShadow = true;
+			// scene.add(spotLight);
+			
+			var directionLight = new THREE.DirectionalLight( 0xFFFFFF );
+			directionLight.position.set(0, 10, 30);
+			scene.add(directionLight);
 
 			// 把渲染内容输出至dom中
 			document.getElementById("webgl-output").appendChild(renderer.domElement);
@@ -149,6 +216,50 @@
 			initControler();
 			// 开始渲染
 			render();
+		}
+
+		/**
+		 * 使用画布生成自定义纹理对象
+		 * @return {[type]} [description]
+		 */
+		function generateCustomTexture(){
+			// 创建画布
+			var canvas = document.createElement('canvas');
+			canvas.width = 16;
+			canvas.height = 16;
+			// 获取上下文
+			var context = canvas.getContext('2d');
+			// 获取渐变处理对象
+			// 参数：
+			// x0	渐变的开始圆的 x 坐标
+			// y0	渐变的开始圆的 y 坐标
+			// r0	开始圆的半径
+			// x1	渐变的结束圆的 x 坐标
+			// y1	渐变的结束圆的 y 坐标
+			// r1	结束圆的半径
+			var gradient = context.createRadialGradient(
+				canvas.width / 2, 
+				canvas.height / 2, 
+				0, 
+				canvas.width / 2, 
+				canvas.height / 2, 
+				canvas.width / 2
+			);
+			// 参数：
+			// stop 介于 0.0 与 1.0 之间的值，表示渐变中开始与结束之间的位置。
+			// color 在结束位置显示的 CSS 颜色值
+			gradient.addColorStop(0, 'rgba(255,255,255,1)');
+      gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+      gradient.addColorStop(0.4, 'rgba(0,0,64,1)');
+      gradient.addColorStop(1, 'rgba(0,0,0,1)');
+      // 设置填充绘画的模式 context.fillStyle=color|gradient|pattern;
+      context.fillStyle = gradient;
+      // 绘制已填充绘画的矩形，x,y(矩形左上角)  width,height
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      // 创建纹理对象
+      var texture = new THREE.Texture(canvas);
+      texture.needsUpdate = true;
+      return texture;
 		}
 
 		/**
