@@ -39,7 +39,9 @@
 		var cubeGeom, sphereGeom, polyhedronGeom;
 		// 场景相关控制变量
 		var step = 0; // 记录弹跳的增量
-    var controls;
+    var controls,
+        repeatContr;
+    var repeatFolder;    
 
     /**
      * 初始化控制器
@@ -49,13 +51,59 @@
     	controls = new function () {
 	      this.rotationSpeed = 0.02; // 旋转速度
 	      this.loadTextureType = "jpg";
+        this.repeatWrapping = false;
+        this.isRotate = true;
 	    };
+      repeatContr = new function(){
+        this.repeatX = 1;
+        this.repeatY = 1;
+      }
 
     	gui = new dat.GUI();
     	gui.add(controls, 'rotationSpeed', 0, 0.5);
+      gui.add(controls, 'isRotate');
     	gui.add(controls, 'loadTextureType', ["jpg" ,"dds", "tga", "canvas"]).onChange(function(type){
     		loadTextureGeomByType(type);
     	})
+      gui.add(controls, 'repeatWrapping').onChange(function(e){
+        // 纹理默认的wrapS/T值是THREE.ClampToEdgeWrapping，纹理的最后的一个像素一直延伸至网格边缘
+        if(e){
+          cube.material.map.wrapS = THREE.RepeatWrapping;
+          cube.material.map.wrapT = THREE.RepeatWrapping;
+          sphere.material.map.wrapS = THREE.RepeatWrapping;
+          sphere.material.map.wrapT = THREE.RepeatWrapping;
+          polyhedron.material.map.wrapS = THREE.RepeatWrapping;
+          polyhedron.material.map.wrapT = THREE.RepeatWrapping;
+        }else{
+          cube.material.map.wrapS = THREE.ClampToEdgeWrapping;
+          cube.material.map.wrapT = THREE.ClampToEdgeWrapping;
+          sphere.material.map.wrapS = THREE.ClampToEdgeWrapping;
+          sphere.material.map.wrapT = THREE.ClampToEdgeWrapping;
+          polyhedron.material.map.wrapS = THREE.ClampToEdgeWrapping;
+          polyhedron.material.map.wrapT = THREE.ClampToEdgeWrapping;
+        }
+        cube.material.map.needsUpdate = true;
+        sphere.material.map.needsUpdate = true;
+        polyhedron.material.map.needsUpdate = true;
+
+      })
+      repeatFolder = gui.addFolder("repeat controls");
+      repeatFolder.add(repeatContr, 'repeatX', -4, 4).onChange(function(e){
+        cube.material.map.repeat.set(repeatContr.repeatX, repeatContr.repeatY);
+        sphere.material.map.repeat.set(repeatContr.repeatX, repeatContr.repeatY);
+        polyhedron.material.map.repeat.set(repeatContr.repeatX, repeatContr.repeatY);
+        cube.material.map.needsUpdate = true;
+        sphere.material.map.needsUpdate = true;
+        polyhedron.material.map.needsUpdate = true;
+      })
+      repeatFolder.add(repeatContr, 'repeatY', -4, 4).onChange(function(e){
+        cube.material.map.repeat.set(repeatContr.repeatX, repeatContr.repeatY);
+        sphere.material.map.repeat.set(repeatContr.repeatX, repeatContr.repeatY);
+        polyhedron.material.map.repeat.set(repeatContr.repeatX, repeatContr.repeatY);
+        cube.material.map.needsUpdate = true;
+        sphere.material.map.needsUpdate = true;
+        polyhedron.material.map.needsUpdate = true;
+      })
     }
 
     /**
@@ -152,13 +200,15 @@
      */
     function render(){
     	stats.update(); // 即时更新FPS
+
+      if(controls.isRotate){
+        step += controls.rotationSpeed;
+
+        cube.rotation.set(step, step, step);
+        sphere.rotation.set(step, step, step);
+        polyhedron.rotation.set(step, step, step);
+      }
     	
-    	step += controls.rotationSpeed;
-
-    	cube.rotation.set(step, step, step);
-    	sphere.rotation.set(step, step, step);
-    	polyhedron.rotation.set(step, step, step);
-
     	// 使用帧动画函数
     	requestAnimationFrame(render);
     	renderer.render( scene, camera );

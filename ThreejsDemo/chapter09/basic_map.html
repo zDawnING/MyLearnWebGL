@@ -32,18 +32,20 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var cubeNew, cubeOld, plane;
-		var cubeNewGeom, cubeOldGeom;
+		var cubeNew, cubeOld, sphereNew, sphereOld, plane;
+		var cubeNewGeom, cubeOldGeom, sphereNewGeom, sphereOldGeom;
 		var pointLightSphere, pointLight;
 		// 场景相关控制变量
 		var step = 0; // 记录弹跳的增量
     var controls,
     		bumpContr,
     		normalContr,
-        canvasBumpContr;
+        canvasBumpContr,
+        specularContr;
     var bumpFolder,
     		normalFolder,
-        canvasBumpFolder;
+        canvasBumpFolder,
+        specularFolder;
     var clock;
 
     /**
@@ -72,11 +74,15 @@
           cubeNew.material.bumpMap = createNoiseCanvas();
         }
       }
+      specularContr = new function(){
+        this.specular = 0xFF0000;
+        this.shininess = 1;
+      }
 
 
     	gui = new dat.GUI();
     	gui.add(controls, 'rotationSpeed', 0, 0.5);
-    	gui.add(controls, 'mapType', ["bump", "normal", "canvas_bump"]).onChange(function(type){
+    	gui.add(controls, 'mapType', ["bump", "normal", "canvas_bump", "specular"]).onChange(function(type){
     		loadTextureMeshByType(type);
     	})
     	gui.add(controls, 'isRotate').listen();
@@ -113,6 +119,14 @@
         cubeNew.material.color = new THREE.Color(e);
       })
       canvasBumpFolder.add(canvasBumpContr, 'updateCanvas');
+
+      specularFolder = gui.addFolder("specular map");
+      specularFolder.addColor(specularContr, 'specular').onChange(function(e){
+        sphereNew.material.specular = new THREE.Color(e);
+      })
+      specularFolder.add(specularContr, 'shininess', 0, 4).onChange(function(e){
+        sphereNew.material.shininess = e;
+      })
     }
 
     function loadTextureMeshByType(type){
@@ -157,19 +171,34 @@
           cubeNew = createCanvasBumpMesh(cubeNewGeom, true);
           cubeNew.rotation.y = Math.PI * 0.1;
           cubeNew.position.set(-10, 5, 0);
-          cubeOld = createCanvasBumpMesh(cubeNewGeom, false);
+          cubeOld = createCanvasBumpMesh(cubeOldGeom, false);
           cubeOld.rotation.y = -Math.PI * 0.1;
           cubeOld.position.set(10, 5, 0);
           scene.add(cubeNew);
           scene.add(cubeOld);
-          break;  
+          break;
+        case "specular":
+          specularFolder.open();
+          sphereNew = createSpecularMesh(sphereNewGeom, 
+            "../assets/textures/planets/Earth.png",
+            "../assets/textures/planets/EarthNormal.png",
+            "../assets/textures/planets/EarthSpec.png");
+          sphereNew.position.set(-10, 5, 0);
+          sphereOld = createSpecularMesh(sphereOldGeom,
+            "../assets/textures/planets/Earth.png", null, null);
+          sphereOld.position.set(10, 5, 0);
+          scene.add(sphereNew);
+          scene.add(sphereOld);
+          break; 
     	}
     }
 
-    function createCubeGeom(){
-    	// 创建用于展示凹凸贴图的改变
+    function createGeometrys(){
+    	// New用于展示凹凸贴图的改变
     	cubeNewGeom = new THREE.BoxGeometry( 15, 15, 15 );
     	cubeOldGeom = new THREE.BoxGeometry( 15, 15, 15 );
+      sphereNewGeom = new THREE.SphereGeometry(7, 40, 40);
+      sphereOldGeom = new THREE.SphereGeometry(7, 40, 40);
     }
 
     function createBumpMesh(geometry, imagePath, bumpImgPath){
@@ -220,16 +249,35 @@
       return mesh;
     }
 
+    function createSpecularMesh(geometry, imagePath, normalImgPath, specularImgPath){
+      var texture = THREE.ImageUtils.loadTexture(imagePath);
+      var material = new THREE.MeshPhongMaterial();
+      material.map = texture;
+      if(specularImgPath){
+        var normalTexture = THREE.ImageUtils.loadTexture(normalImgPath);
+        var specularTexture = THREE.ImageUtils.loadTexture(specularImgPath);
+        material.normalMap = normalTexture;
+        material.specularMap = specularTexture;
+        material.specular = new THREE.Color(specularContr.specular);
+        material.shininess = specularContr.shininess;
+      }
+      var mesh = new THREE.Mesh( geometry, material );
+      return mesh;
+    }
+
     function closeAllFolder(){
     	bumpFolder.close();
     	normalFolder.close();
       canvasBumpFolder.close();
+      specularFolder.close();
     }
 
     function removeAllMesh(){
     	scene.remove(cubeNew);
     	scene.remove(cubeOld);
     	scene.remove(pointLightSphere);
+      scene.remove(sphereNew);
+      scene.remove(sphereOld);
     }
 
     var inverse = 1; // x轴正方向为正
@@ -246,6 +294,8 @@
     	if(controls.isRotate){
     		cubeNew.rotation.y += controls.rotationSpeed;
     		cubeOld.rotation.y += controls.rotationSpeed;
+        sphereNew.rotation.y += controls.rotationSpeed;
+        sphereOld.rotation.y += controls.rotationSpeed;
     	}
 
     	if(controls.mapType == "normal"){
@@ -330,8 +380,8 @@
 			pointLight.visible = false;
 			scene.add(pointLight);
 
-			// 创建立方体的几何对象
-			createCubeGeom();
+			// 创建多个几何对象
+			createGeometrys();
 			// 创建立方体网格并添加纹理
 			loadTextureMeshByType("bump");
 

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+	<!-- 字体文件 -->
+	<script type="text/javascript" src="../assets/helvetiker_regular.typeface.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var plane, planeGeom;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls,
+    		uvContr;
+   	var uvFolder; 		
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.02; // 旋转速度
+	      this.setTexture = function(){
+	      	var texture = THREE.ImageUtils.loadTexture("../assets/textures/ash_uvgrid01.jpg");
+	      	// 修改basicMaterial
+	      	plane.children[1].material.wireframe = false;
+	      	plane.children[1].material.map = texture;
+	      	plane.children[1].material.needsUpdate = true;
+
+	      	uvFolder.open();
+	      }
+	    };
+	    uvContr = new function(){
+	    	this.uv0_x = planeGeom.attributes.uv.array[0];
+	    	this.uv0_y = planeGeom.attributes.uv.array[1];
+	    	this.uv1_x = planeGeom.attributes.uv.array[2];
+	    	this.uv1_y = planeGeom.attributes.uv.array[3];
+	    	this.uv2_x = planeGeom.attributes.uv.array[4];
+	    	this.uv2_y = planeGeom.attributes.uv.array[5];
+	    	this.uv3_x = planeGeom.attributes.uv.array[6];
+	    	this.uv3_y = planeGeom.attributes.uv.array[7];
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.add(controls, 'setTexture');
+
+    	uvFolder = gui.addFolder("UV Controls");
+    	uvFolder.add(uvContr, 'uv0_x', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[0] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    	uvFolder.add(uvContr, 'uv0_y', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[1] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    	uvFolder.add(uvContr, 'uv1_x', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[2] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    	uvFolder.add(uvContr, 'uv1_y', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[3] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    	uvFolder.add(uvContr, 'uv2_x', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[4] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    	uvFolder.add(uvContr, 'uv2_y', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[5] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    	uvFolder.add(uvContr, 'uv3_x', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[6] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    	uvFolder.add(uvContr, 'uv3_y', 0, 1).onChange(function(e){
+    		planeGeom.attributes.uv.array[7] = e;
+    		planeGeom.attributes.uv.needsUpdate = true;
+    	})
+    }
+
+    /**
+     * 创建平面
+     * @return {[type]} [description]
+     */
+    function createPlane(){
+    	// 创建地面
+			planeGeom = new THREE.PlaneBufferGeometry( 20, 20, 1, 1 ); // 几何体类型对象
+			console.log(planeGeom);
+			plane = createMesh( planeGeom );
+			// 加入至场景
+			scene.add(plane);
+    }
+
+    /**
+     * 创建立体文本
+     * @param  {[type]} str  [description]
+     * @param  {[type]} posX [description]
+     * @param  {[type]} posY [description]
+     * @param  {[type]} posZ [description]
+     * @return {[type]}      [description]
+     */
+    function createText(str, posX, posY, posZ){
+    	var textGeom = new THREE.TextGeometry( str ,{
+    		size: 5, // 字体大小
+        height: 0, // 高度
+        weight: 'normal', // 粗细
+        font: "helvetiker", // 字体
+    	});
+    	var material = new THREE.MeshLambertMaterial( {color: 0xFF0000} );
+    	var text = new THREE.Mesh(textGeom, material);
+    	text.scale.set(0.1, 0.1, 0.1);
+    	// 给设定位置添加上下偏移
+    	posX > 0 ? posX += 1 : posX -= 1;
+    	posY > 0 ? posY += 1 : posY -= 1;
+    	if(posX < 0 && posY < 0){
+    		posX -= 0.5; posY -= 0.5;
+    	}
+    	// console.log(posX, posY, posZ);
+    	text.position.set(posX, posY, posZ);
+    	scene.add(text);
+    }
+
+    /**
+     * 设置UV坐标信息
+     * @param {[type]} uvArr  [description]
+     * @param {[type]} posArr [description]
+     */
+    function setUvCoordText(uvArr, posArr){
+    	var uvCount = 0;
+    	var count = 0;
+    	for(var i=0, len = posArr.length; i < len; i+=3){
+    		var vertex = posArr.slice(i, i+3);
+    		var uvCoord = uvArr.slice(uvCount, uvCount+=2);
+    		createText("uv"+ count + "(" + uvCoord[0] + "," + uvCoord[1] + ")", vertex[0], vertex[1], vertex[2]);
+    		count++;
+    	}
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 0;
+			camera.position.y = 0;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+			createPlane();
+
+			setUvCoordText(planeGeom.attributes.uv.array, planeGeom.attributes.position.array);
+
+			// 配置控制器
+			initControler();
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(-40, 60, -10);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 创建网格对象
+		 * @param  {[type]} geometry [description]
+		 * @return {[type]}          [description]
+		 */
+		function createMesh(geometry){
+			// 创建法向量材质
+			var normalMaterial = new THREE.MeshNormalMaterial();
+			normalMaterial.side = THREE.DoubleSide;
+			// 创建基础材质
+			var basicMaterial = new THREE.MeshBasicMaterial();
+			// 开启网格模式
+			basicMaterial.wireframe = true;
+			// 组合两种材质
+			var mesh = THREE.SceneUtils.createMultiMaterialObject( 
+				geometry,
+				[normalMaterial, basicMaterial]
+			);
+			return mesh;
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
