@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+
+	/*#video-output{
+		position: fixed;
+		top: 0px;
+		right: 0px;
+		width: 160px;
+		height: 90px;
+	}*/
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	<!-- webRTC视频 -->
+	<video id="video-output" autoplay playsinline></video>
+	<!-- 普通视频:这里的视频就不放上github啦，没必要 --> 
+	<!-- <video id="video-output" src="../assets/Big_Buck_Bunny_small.ogv" autoplay style="display: none;"></video> -->
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+	<script type="text/javascript" src="../lib/controls/OrbitControls.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var cube;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls;
+    var orbitControls;
+    var video;
+    var constraints = {
+    	audio: true,
+  		video: true
+    }
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.02; // 旋转速度
+	    };
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    }
+
+
+    /**
+     * 创建webRTC视频流
+     * @return {[type]} [description]
+     */
+    function createWebRTC(){
+    	video = document.getElementById("video-output");
+    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).catch(webRTChandleError);
+    }
+    /**
+     * 成功创建视频流的回调，并调用生成视频纹理
+     * @param  {[type]} stream [description]
+     * @return {[type]}        [description]
+     */
+    function webRTChandleSuccess(stream){
+    	var videoTrack = stream.getVideoTracks();
+    	stream.oninative = function(){
+    		console.log('Stream inactive');
+    	}
+    	video.srcObject = stream;
+    	createVideoTexture();
+    }
+    /**
+     * 错误回调
+     * @param  {[type]} error [description]
+     * @return {[type]}       [description]
+     */
+    function webRTChandleError(error){
+    	if (error.name === 'ConstraintNotSatisfiedError') {
+		    errorMsg('The resolution ' + constraints.video.width.exact + 'x' +
+		        constraints.video.width.exact + ' px is not supported by your device.');
+		  } else if (error.name === 'PermissionDeniedError') {
+		    errorMsg('Permissions have not been granted to use your camera and ' +
+		      'microphone, you need to allow the page access to your devices in ' +
+		      'order for the demo to work.');
+		  }
+		  errorMsg('getUserMedia error: ' + error.name, error);
+    }
+    /**
+     * 错误信息打印
+     * @param  {[type]} msg   [description]
+     * @param  {[type]} error [description]
+     * @return {[type]}       [description]
+     */
+    function errorMsg(msg, error){
+    	if (typeof error !== 'undefined') {
+		    console.error(error);
+		  }
+    }
+
+    /**
+     * 创建视频纹理
+     * @return {[type]} [description]
+     */
+    function createVideoTexture(){
+    	var texture = new THREE.VideoTexture(video);
+    	// 创建立方体
+			var cubeGeometry = new THREE.BoxGeometry( 32, 24, 3 ); // 4:3比例
+			// 仅给一个面设置video纹理输出，因此需要给其他面设置普通纹理
+			var materials = [];
+			
+			materials.push(new THREE.MeshBasicMaterial({color: 0xFF0000}))
+			materials.push(new THREE.MeshBasicMaterial({color: 0xFF0000}))
+			materials.push(new THREE.MeshBasicMaterial({color: 0xFF0000}))
+			materials.push(new THREE.MeshBasicMaterial({color: 0xFF0000}))
+			materials.push(new THREE.MeshBasicMaterial({map: texture}))
+			materials.push(new THREE.MeshBasicMaterial({color: 0xFF0000}))
+			var faceMaterial = new THREE.MeshFaceMaterial( materials ); // 后面该API被舍弃
+
+			cube = new THREE.Mesh( cubeGeometry, faceMaterial );
+			scene.add(cube);
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+    	// 旋转立方体
+    	// cube.rotation.x += controls.rotationSpeed;
+    	// cube.rotation.y += controls.rotationSpeed;
+    	// cube.rotation.z += controls.rotationSpeed;
+    	// 
+    	orbitControls.update();
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	renderer.render( scene, camera );
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 0;
+			camera.position.y = 0;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			orbitControls = new THREE.OrbitControls(camera);
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+			createWebRTC();
+			// 普通视频加载
+			// video = document.getElementById("video-output");
+			// createVideoTexture();
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(0, 0, 20);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			// 配置控制器
+			initControler();
+			// 开始渲染
+			render();
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
