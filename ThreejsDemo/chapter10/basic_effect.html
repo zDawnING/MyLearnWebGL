@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+	<!-- 相机控制 -->
+	<script type="text/javascript" src="../lib/controls/OrbitControls.js"></script>
+	<!-- 效果组合器组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/EffectComposer.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/MaskPass.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/ShaderPass.js"></script>
+	<script type="text/javascript" src="../lib/shaders/CopyShader.js"></script>
+	<!-- 效果组合器组件辅助组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/RenderPass.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/TexturePass.js"></script>
+	<!-- film效果组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/FilmPass.js"></script>
+	<script type="text/javascript" src="../lib/shaders/FilmShader.js"></script>
+	<!-- bloom效果组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/BloomPass.js"></script>
+	<script type="text/javascript" src="../lib/shaders/ConvolutionShader.js"></script>
+	<!-- dotScreen效果组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/DotScreenPass.js"></script>
+	<script type="text/javascript" src="../lib/shaders/DotScreenShader.js"></script>
+	<!-- glitch效果组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/GlitchPass.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/DigitalGlitch.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var sphere;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls,
+    		filmContr,
+    		bloomContr,
+    		dotScreenContr,
+    		glitchContr;
+    var filmFolder,
+    		bloomFolder,
+    		dotScreenFolder,
+    		glitchFolder;		
+    var orbitControls;
+    var renderPass, effectCopy, renderScene;
+    var originComposer,
+    		filmComposer,
+    		bloomComposer,
+    		dotScreenComposer,
+    		glitchComposer;
+    // 效果通道对象
+    var effectFilm, effectBloom, effectDotScreen, effectGlitch;
+    var clock;
+    // 当前屏幕尺寸
+    var screenWidth = window.innerWidth || 2;
+    var screenHeight = window.innerHeight || 2;
+    var halfScreenWidth = screenWidth / 2;
+    var halfScreenHeight = screenHeight / 2;
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.01; // 旋转速度
+	      this.specular = '#FF0000';
+	      this.shininess = 1;
+	      this.showAllEffect = false;
+	      this.effectType = "film";
+	      this.showFilm = function(){
+	      	controls.effectType = "film";
+	      	selectEffect(controls.effectType);
+	      }
+	      this.showBloom = function(){
+	      	controls.effectType = "bloom";
+	      	selectEffect(controls.effectType);
+	      }
+	      this.showDotScreen = function(){
+	      	controls.effectType = "dotScreen";
+	      	selectEffect(controls.effectType);
+	      }
+	      this.showGlitch = function(){
+	      	controls.effectType = "glitch";
+	      	selectEffect(controls.effectType);
+	      }
+	    };
+	    filmContr = new function(){
+	    	this.noiseIntensity = 0.8; // 噪音强度
+	    	this.scanlinesIntensity = 0.325; // 扫描行强度
+	    	this.scanlinesCount = 256; // 扫描行数量
+	    	this.grayscale = false; // 灰度
+	    	this.updateArgs = function(){
+	    		// console.log(effectFilm.uniforms); // 这里要注意实际生成的属性名
+	    		// 这里的的修改方式是提示可以直接更改通道对象中的uniforms中属性的值，且可立即看到结果，亦可采用下面其他通道的做法
+	    		effectFilm.uniforms.nIntensity.value = filmContr.noiseIntensity;
+	    		effectFilm.uniforms.sIntensity.value = filmContr.scanlinesIntensity;
+	    		effectFilm.uniforms.sCount.value = filmContr.scanlinesCount;
+	    		effectFilm.uniforms.grayscale.value = filmContr.grayscale;
+	    	}
+	    }
+	    bloomContr = new function(){
+	    	this.strength = 3; // 泛光强度，越高越亮，且渗入较暗区域的也就越多
+        this.kernelSize = 25; // 泛光的偏移量
+        this.sigma = 5.0; // 泛光锐利度，值越高越模糊
+        this.resolution = 256; // 定义泛光效果解析度，该值太低，结果的方块化比较严重
+        this.updateArgs = function(){
+        	createFullScreenBloomEffect();
+        }
+	    }
+	    dotScreenContr = new function(){
+	    	this.centerX = 0.5; // 点的x偏移量
+	    	this.centerY = 0.5; // 点的y偏移量
+	    	this.angle = 1.57;	// 更改对其方式，即对其角度
+	    	this.scale = 1;			// 点的大小，scale越小，点越大
+	    	this.updateArgs = function(){
+	    		createFullScreenDotEffect();
+	    	}
+	    }
+	    glitchContr = new function(){
+	    	this.dt_size = 64;
+	    	this.goWild = false;
+	    	this.updateArgs = function(){
+	    		createFullScreenGlitchEffect();
+	    		effectGlitch.goWild = glitchContr.goWild;
+	    	}
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.addColor(controls, 'specular').onChange(function(e){
+    		sphere.material.specular = new THREE.Color(e);
+    	})
+    	gui.add(controls, 'showAllEffect').onChange(function(e){
+    		if(!e){
+    			renderer.clear();
+    		}
+    	});
+    	gui.add(controls, 'showFilm');
+    	gui.add(controls, 'showBloom');
+    	gui.add(controls, 'showDotScreen');
+    	gui.add(controls, 'showGlitch');
+
+    	filmFolder = gui.addFolder("Film");
+    	filmFolder.add(filmContr, 'noiseIntensity', 0, 3).onChange(filmContr.updateArgs);
+    	filmFolder.add(filmContr, 'scanlinesIntensity', 0, 1).onChange(filmContr.updateArgs);
+    	filmFolder.add(filmContr, 'scanlinesCount', 0, 2048).step(1).onChange(filmContr.updateArgs);
+    	filmFolder.add(filmContr, 'grayscale').onChange(filmContr.updateArgs);
+
+    	bloomFolder = gui.addFolder("Bloom");
+    	bloomFolder.add(bloomContr, 'strength', 1, 10).onChange(bloomContr.updateArgs);
+    	bloomFolder.add(bloomContr, 'kernelSize', 1, 100).onChange(bloomContr.updateArgs);
+    	bloomFolder.add(bloomContr, 'sigma', 1, 10).onChange(bloomContr.updateArgs);
+    	bloomFolder.add(bloomContr, 'resolution', 0, 2048).onChange(bloomContr.updateArgs);
+
+    	dotScreenFolder = gui.addFolder("DotScreen");
+    	dotScreenFolder.add(dotScreenContr, 'centerX', 0, 1).onChange(dotScreenContr.updateArgs);
+    	dotScreenFolder.add(dotScreenContr, 'centerY', 0, 1).onChange(dotScreenContr.updateArgs);
+    	dotScreenFolder.add(dotScreenContr, 'angle', 0, Math.PI).onChange(dotScreenContr.updateArgs);
+    	dotScreenFolder.add(dotScreenContr, 'scale', 0, 10).onChange(dotScreenContr.updateArgs);
+
+    	glitchFolder = gui.addFolder("Glitch");
+    	glitchFolder.add(glitchContr, 'dt_size', 1, 100).onChange(glitchContr.updateArgs);
+    	glitchFolder.add(glitchContr, 'goWild').onChange(glitchContr.updateArgs);
+
+    }
+
+    function selectEffect(type){
+    	closeAllFolder();
+    	switch(type){
+    		case "film":
+    			filmFolder.open();
+    			createFullScreenFilmEffect();
+    			break;
+    		case "bloom":
+    			bloomFolder.open();
+    			createFullScreenBloomEffect();
+    			break;
+    		case "dotScreen":
+    			dotScreenFolder.open();
+    			createFullScreenDotEffect();
+    			break;
+    		case "glitch":
+    			glitchFolder.open();
+    			createFullScreenGlitchEffect();
+    			break;		
+    	}
+    }
+
+    function closeAllFolder(){
+    	filmFolder.close();
+    	bloomFolder.close();
+			dotScreenFolder.close();
+			glitchFolder.close();
+    }
+
+    /**
+     * 创建原始的渲染场景对象
+     * @return {[type]} [description]
+     */
+    function createOriginRenderScene(){
+    	// 用于渲染场景
+    	renderPass = new THREE.RenderPass(scene, camera);
+    	// 使用该通道可以传入一个自定义着色器，用来生成自定义的后期处理通道
+    	// 这里用于重用原始渲染结果, CopyShader可以设置ShaderPass的渲染输出结果不会有进一步的后期处理
+    	effectCopy = new THREE.ShaderPass(THREE.CopyShader);
+    	effectCopy.renderToScreen = true; // 渲染结果将会输出到屏幕
+    	// 创建原始场景组合器
+    	originComposer = new THREE.EffectComposer(renderer);
+    	originComposer.addPass(renderPass);
+    	originComposer.addPass(effectCopy); // 将输出的图像定义至renderTarget中
+    	// 将效果组合器的当前状态保存为一个纹理
+    	// 为了后面的效果渲染，可以直接重用原始场景组合器的输出，因此可最为纹理创建至TexturePass对象中
+    	renderScene = new THREE.TexturePass(originComposer.renderTarget2);
+    }
+
+    /**
+     * 创建全屏胶片特效, 通过扫描线和失真模拟电视屏幕
+     * @return {[type]} [description]
+     */
+    function createFullScreenFilmEffect(){
+    	effectFilm = new THREE.FilmPass(
+    		filmContr.noiseIntensity, 
+    		filmContr.scanlinesIntensity, 
+    		filmContr.scanlinesCount, 
+    		filmContr.grayscale);
+    	effectFilm.renderToScreen = true; // 渲染结果将会输出到屏幕,该属性并非所有效果通道都可用
+    	// 创建效果组合器对象
+    	filmComposer = new THREE.EffectComposer(renderer);
+    	filmComposer.addPass(renderScene);
+    	// 添加效果通道
+    	filmComposer.addPass(effectFilm);
+    }
+
+    /**
+     * 创建全屏泛光特效，明亮区域渗入较暗区域，模拟相机照到过亮光的情形
+     * @return {[type]} [description]
+     */
+    function createFullScreenBloomEffect(){
+    	effectBloom = new THREE.BloomPass(
+    		bloomContr.strength,
+    		bloomContr.kernelSize,
+    		bloomContr.sigma,
+    		bloomContr.resolution);
+    	bloomComposer = new THREE.EffectComposer(renderer);
+    	bloomComposer.addPass(renderScene);
+    	bloomComposer.addPass(effectBloom);
+    	// 该效果不能使用renderToScreen来指定渲染至屏幕，
+    	// 替代的则需要依赖effectCopy对象将最后一个通道的结果复制到屏幕上,不会附加有任何特殊效果
+    	bloomComposer.addPass(effectCopy);
+    }
+
+    /**
+     * 创建全屏黑点贴至原始图像上
+     * @return {[type]} [description]
+     */
+    function createFullScreenDotEffect(){
+    	effectDotScreen = new THREE.DotScreenPass(
+    		new THREE.Vector2( dotScreenContr.centerX, dotScreenContr.centerY ),
+    		dotScreenContr.angle,
+    		dotScreenContr.scale);
+    	dotScreenComposer = new THREE.EffectComposer(renderer);
+    	dotScreenComposer.addPass(renderScene);
+    	dotScreenComposer.addPass(effectDotScreen);
+    	// 该效果不能使用renderToScreen来指定渲染至屏幕，
+    	// 替代的则需要依赖effectCopy对象将最后一个通道的结果复制到屏幕上,不会附加有任何特殊效果
+    	dotScreenComposer.addPass(effectCopy);
+    }
+
+    /**
+     * 创建全屏干扰特效，模拟短时脉冲波干扰
+     * @return {[type]} [description]
+     */
+    function createFullScreenGlitchEffect(){
+    	effectGlitch = new THREE.GlitchPass(glitchContr.dt_size);
+    	glitchComposer = new THREE.EffectComposer(renderer);
+    	glitchComposer.addPass(renderScene);
+    	glitchComposer.addPass(effectGlitch);
+    	// 该效果不能使用renderToScreen来指定渲染至屏幕，
+    	// 替代的则需要依赖effectCopy对象将最后一个通道的结果复制到屏幕上,不会附加有任何特殊效果
+    	glitchComposer.addPass(effectCopy);
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	var delta = clock.getDelta();
+    	stats.update(); // 即时更新FPS
+    	
+    	orbitControls.update(delta);
+
+    	sphere.rotation.y += controls.rotationSpeed;
+
+    	renderer.autoClear = false;
+      renderer.clear();
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	// renderer.render( scene, camera );
+    	// renderer.setViewport(halfWidth, halfHeight, halfWidth, halfHeight);
+    	// 首先得将原始场景组合器中的场景渲染出来，因为其他效果组合器都是基于这个组合器的纹理合成的
+    	originComposer.render(delta);
+
+    	if(controls.effectType == 'film' || controls.showAllEffect){
+    		controls.showAllEffect ? createFourScreen("upperLeft") : createFourScreen(false);
+    		filmComposer.render(delta);
+    	}
+    	if(controls.effectType == 'bloom' || controls.showAllEffect){
+    		controls.showAllEffect ? createFourScreen("upperRight") : createFourScreen(false);
+    		bloomComposer.render(delta);
+    	}
+    	if(controls.effectType == 'dotScreen' || controls.showAllEffect){
+    		controls.showAllEffect ? createFourScreen("lowerLeft") : createFourScreen(false);
+    		dotScreenComposer.render(delta);
+    	}
+    	if(controls.effectType == 'glitch' || controls.showAllEffect){
+    		controls.showAllEffect ? createFourScreen("lowerRight") : createFourScreen(false);
+    		glitchComposer.render(delta);
+    	}
+    }
+
+    /**
+     * 创建等比的四个视口
+     * @param  {[type]} siteType [description]
+     * @return {[type]}          [description]
+     */
+    function createFourScreen(siteType){
+    	switch(siteType){
+    		case "upperLeft": // 位于屏幕左上角
+    			renderer.setViewport(0, halfScreenHeight, halfScreenWidth, halfScreenHeight);
+    			break;
+    		case "upperRight": // 位于屏幕右上角
+    			renderer.setViewport(halfScreenWidth, halfScreenHeight, halfScreenWidth, halfScreenHeight);
+    			break;
+    		case "lowerLeft": // 位于屏幕左下角
+    			renderer.setViewport(0, 0, halfScreenWidth, halfScreenHeight);
+    			break;
+    		case "lowerRight": // 位于屏幕右下角
+    			renderer.setViewport(halfScreenWidth, 0, halfScreenWidth, halfScreenHeight);
+    			break;
+    		default:
+    			renderer.setViewport(0, 0, screenWidth, screenHeight);
+    			break;		
+    	}
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 0;
+			camera.position.y = 0;
+			camera.position.z = 30;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0x000000, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			clock = new THREE.Clock();
+
+			orbitControls = new THREE.OrbitControls(camera);
+			// orbitControls.autoRotate = true;
+
+				// 配置控制器
+			initControler();
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+      var sphereGometry = new THREE.SphereGeometry( 10, 40, 40 );
+      sphere = createSpecularMesh(sphereGometry, 
+      	"../assets/textures/planets/Earth.png",
+      	"../assets/textures/planets/EarthNormal.png",
+      	"../assets/textures/planets/EarthSpec.png");
+      scene.add(sphere);
+			
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(0, 0, 50);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			createOriginRenderScene();
+
+			createFullScreenFilmEffect();
+			createFullScreenBloomEffect();
+			createFullScreenDotEffect();
+			createFullScreenGlitchEffect();
+		
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 创建高光纹理网格对象
+		 * @param  {[type]} geometry        [description]
+		 * @param  {[type]} imagePath       [description]
+		 * @param  {[type]} normalImgPath   [description]
+		 * @param  {[type]} specularImgPath [description]
+		 * @return {[type]}                 [description]
+		 */
+		function createSpecularMesh(geometry, imagePath, normalImgPath, specularImgPath){
+      var texture = THREE.ImageUtils.loadTexture(imagePath);
+      var material = new THREE.MeshPhongMaterial();
+      material.map = texture;
+      if(specularImgPath){
+        var normalTexture = THREE.ImageUtils.loadTexture(normalImgPath);
+        var specularTexture = THREE.ImageUtils.loadTexture(specularImgPath);
+        material.normalMap = normalTexture;
+        material.specularMap = specularTexture;
+        material.specular = new THREE.Color(controls.specular);
+        material.shininess = controls.shininess;
+      }
+      var mesh = new THREE.Mesh( geometry, material );
+      return mesh;
+    }
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+			// 重新设置屏幕高宽
+			screenWidth = window.innerWidth;
+    	screenHeight = window.innerHeight;
+    	halfScreenWidth = screenWidth / 2;
+    	halfScreenHeight = screenHeight / 2;
+		}
+
+		window.onload = init;
+
+		// window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
