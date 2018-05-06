@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<!-- 相机控制 -->
+	<script type="text/javascript" src="../lib/controls/OrbitControls.js"></script>
+	<!-- 效果组合器组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/EffectComposer.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/MaskPass.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/ShaderPass.js"></script>
+	<script type="text/javascript" src="../lib/shaders/CopyShader.js"></script>
+	<!-- 效果组合器组件辅助组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/RenderPass.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/TexturePass.js"></script>
+	<!-- 效果shader -->
+	<script type="text/javascript" src="../lib/shaders/SepiaShader.js"></script>
+	<script type="text/javascript" src="../lib/shaders/ColorifyShader.js"></script>
+
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera, orthoCamera; // 相机
+		var scene, earthScene, moonScene, bgScene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var earth, moon, bgPlane;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+    var controls;
+    var orbitControls;
+    var clock;
+    var effectSepia, effectColorify;
+    var effectComposer;
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.02; // 旋转速度
+	      this.sepiaAmount = 5;
+	      this.colorifyColor = 0xFFFFFF;
+	    };
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+    	gui.add(controls, 'sepiaAmount', 0, 10).onChange(function(e){
+    		effectSepia.uniforms['amount'].value = e;
+    	})
+    	gui.addColor(controls, 'colorifyColor').onChange(function(e){
+    		effectColorify.uniforms['color'].value = new THREE.Color(e);
+    	})
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	var delta = clock.getDelta();
+
+    	renderer.autoClear = false;
+
+    	stats.update(); // 即时更新FPS
+
+    	orbitControls.update(delta);
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	// renderer.render( scene, camera );
+    	
+    	effectComposer.render(delta);
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 初始化场景
+			scene = new THREE.Scene();
+			earthScene = new THREE.Scene();
+			moonScene = new THREE.Scene();
+			bgScene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = 0;
+			camera.position.y = 0;
+			camera.position.z = 60;
+			camera.lookAt(new THREE.Vector3(0, 0, 0)); // 视线指向场景中心
+
+			// 创建一个正投影相机
+			orthoCamera = new THREE.OrthographicCamera( 
+				-window.innerWidth/2, window.innerWidth/2, window.innerHeight/2, -window.innerHeight, -1000, 1000 );
+			orthoCamera.position.z = 50;
+
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0x000000, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 配置控制器
+			initControler();
+
+			clock = new THREE.Clock();
+
+			orbitControls = new THREE.OrbitControls(camera);
+
+			// 展示辅助观察的世界坐标系
+      // var axes = new THREE.AxisHelper(20);
+      // scene.add(axes);
+
+			// 初始化多个场景
+			createBackgroundScene();
+			createEarthScene();
+			createMoonScene();
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			addMaskEffectToScenes();
+			
+			// 开始渲染
+			render();
+		}
+
+		/**
+		 * 给多个场景添加掩膜效果
+		 */
+		function addMaskEffectToScenes(){
+			// 创建各个场景通道
+			var bgPass = new THREE.RenderPass(bgScene, orthoCamera);
+			var earthPass = new THREE.RenderPass(earthScene, camera);
+			earthPass.clear = false; // 开始渲染时不做清除操作
+			var moonPass = new THREE.RenderPass(moonScene, camera);
+			moonPass.clear = false;
+			// 设置重用渲染结果对象，并输出至屏幕
+			var effectCopy = new THREE.ShaderPass(THREE.CopyShader);
+			effectCopy.renderToScreen = true;
+			// 创建场景掩膜
+			// MaskPass会在内部渲染场景，只是不将结果展示至屏幕，而将其创建掩膜
+			// 添加至效果组合器后，后续所有通道将只会应用到当前创建好的掩膜上，直至使用下面的移除对象
+			// 另外给掩膜对象属性inverse设为true,则除了传递给MaskPass的场景外，全部都会应用上其上面的效果
+			var earthMask = new THREE.MaskPass(earthScene, camera);
+			var moonMask = new THREE.MaskPass(moonScene, camera);
+			// 创建移除掩膜对象
+			var clearMask = new THREE.ClearMaskPass();
+
+			// 创建效果通道
+			// 褐色滤镜
+			effectSepia = new THREE.ShaderPass(THREE.SepiaShader);
+			effectSepia.uniforms['amount'].value = controls.sepiaAmount;
+			// 着色
+			effectColorify = new THREE.ShaderPass(THREE.ColorifyShader);
+			effectColorify.uniforms['color'].value = new THREE.Color(controls.colorifyColor);
+
+			effectComposer = new THREE.EffectComposer(renderer);
+			// 要使用掩膜，需要将渲染对象的stencilBuffer属性设置为true
+			effectComposer.renderTarget1.stencilBuffer = true;
+			effectComposer.renderTarget2.stencilBuffer = true;
+			// 添加场景通道
+			effectComposer.addPass(bgPass);
+			effectComposer.addPass(earthPass);
+			effectComposer.addPass(moonPass);
+			// 添加月球掩膜通道
+			effectComposer.addPass(moonMask);
+			effectComposer.addPass(effectColorify);
+			effectComposer.addPass(clearMask); // 添加完成后则清除
+			// 添加地球通道
+			effectComposer.addPass(earthMask);
+			effectComposer.addPass(effectSepia);
+			effectComposer.addPass(clearMask);
+			// 输出至屏幕
+			effectComposer.addPass(effectCopy);
+		}
+
+		/**
+		 * 创建星空场景
+		 * @return {[type]} [description]
+		 */
+		function createBackgroundScene(){
+			var geometry = new THREE.PlaneGeometry( 1, 1 );
+			var texture = THREE.ImageUtils.loadTexture("../assets/textures/starry-deep-outer-space-galaxy.jpg")
+			var material = new THREE.MeshBasicMaterial( {
+				map: texture,
+				depthTest: false
+			} );
+			bgPlane = new THREE.Mesh(geometry, material);
+			bgPlane.position.z = -100;
+			bgPlane.scale.set(window.innerWidth, window.innerHeight, 1);
+			bgScene.add(bgPlane);
+		}
+
+		/**
+		 * 创建地球场景
+		 * @return {[type]} [description]
+		 */
+		function createEarthScene(){
+			// 创建地球
+			var earthGeom = new THREE.SphereGeometry( 10, 60, 60 );
+			earth = createMesh(earthGeom, 
+				"../assets/textures/planets/Earth.png",
+				"../assets/textures/planets/EarthNormal.png",
+				"../assets/textures/planets/EarthSpec.png");
+			earth.material.specular = new THREE.Color(0x4444AA);
+			earth.position.x = -10;
+			earthScene.add(earth);
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x181818 );
+			earthScene.add(ambientLight);
+			// 设置方向光
+			var dLight = new THREE.DirectionalLight(0xffffff);
+      dLight.position.set(200, 0, 400);
+      dLight.intensity = 0.6;
+      earthScene.add(dLight);
+		}
+
+		/**
+		 * 创建月球场景
+		 * @return {[type]} [description]
+		 */
+		function createMoonScene(){
+			// 创建月球
+			var moonGeom = new THREE.SphereGeometry( 5, 60, 60 );
+			// 纹理图案是火星，但准备通过后期处理成月球
+			moon = createMesh(moonGeom, 
+				"../assets/textures/planets/Mars_2k-050104.png", 
+				"../assets/textures/planets/Mars-normalmap_2k.png", false);
+			moon.position.x = 10;
+			moonScene.add(moon);
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x181818 );
+			moonScene.add(ambientLight);
+			// 设置方向光
+			var dLight = new THREE.DirectionalLight(0xffffff);
+      dLight.position.set(200, 0, 400);
+      dLight.intensity = 0.6;
+			moonScene.add(dLight);
+		}
+
+		function createMesh(geometry, imagePath, normalImgPath, specularImgPath){
+			var texture = THREE.ImageUtils.loadTexture(imagePath);
+			var normalTexture = THREE.ImageUtils.loadTexture(normalImgPath);
+			var material = new THREE.MeshPhongMaterial();
+			material.map = texture;
+			material.normalMap = normalTexture;
+			if(specularImgPath){
+				var specularTexture = THREE.ImageUtils.loadTexture(specularImgPath);
+				material.specularMap = specularTexture;
+			}
+			var mesh = new THREE.Mesh( geometry, material );
+			return mesh;
+		}
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
