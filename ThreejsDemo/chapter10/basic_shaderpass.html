@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head>
+	<title>基础场景设置</title>
+</head>
+<style type="text/css">
+	body{
+		/*设置全屏*/
+		margin: 0;
+		overflow: hidden;
+	}
+</style>
+<body>
+
+	<div id="stats-output"></div>
+	<div id="webgl-output"></div>
+	
+	<script type="text/javascript" src="../lib/three.js"></script>
+	<!-- 效果组合器组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/EffectComposer.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/MaskPass.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/ShaderPass.js"></script>
+	<script type="text/javascript" src="../lib/shaders/CopyShader.js"></script>
+	<!-- 效果组合器组件辅助组件 -->
+	<script type="text/javascript" src="../lib/postprocessing/RenderPass.js"></script>
+	<script type="text/javascript" src="../lib/postprocessing/TexturePass.js"></script>
+	<!-- shader -->
+	<script type="text/javascript" src="../lib/shaders/BrightnessContrastShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/ColorifyShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/SepiaShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/RGBShiftShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/ColorCorrectionShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/MirrorShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/VignetteShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/HueSaturationShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/BlendShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/KaleidoShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/LuminosityShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/TechnicolorShader.js"></script>
+  <script type="text/javascript" src="../lib/shaders/UnpackDepthRGBAShader.js"></script>
+
+	<script type="text/javascript" src="../lib/stats.js"></script>
+	<script type="text/javascript" src="../lib/dat.gui.js"></script>
+
+
+	<script type="text/javascript">
+		
+		// 定义全局变量
+		var camera; // 相机
+		var scene; // 场景对象
+		var renderer; // 渲染器
+		// 辅助组件
+		var stats; // 检测动画运行帧频
+		var gui; // 控制界面变量的组件
+
+		// 场景对象(放置全局方便特殊处理)
+		var cube1, cube2, cube3, earth, plane;
+		// 场景相关控制变量
+		var step = 0; // 记录弹跳的增量
+		var mirror,
+	      hueSaturation,
+	      vignette,
+	      colorCorrection,
+	      rgbShift,
+	      brightnessContrast,
+	      colorify,
+	      sepia,
+	      kaleido,
+	      luminosity,
+	      technicolor,
+	      unpackDepthRGBA;
+    var controls,
+      	mirrorContr,
+      	hueSaturationContr,
+      	vignetteContr,
+      	colorCorrectionContr,
+      	rgbShiftContr,
+      	brightnessContrastContr,
+      	colorifyContr,
+      	sepiaContr,
+      	kaleidoContr;
+    var mirrorFolder,
+	      hueSaturationFolder,
+	      vignetteFolder,
+	      colorCorrectionFolder,
+	      rgbShiftFolder,
+	      brightnessContrastFolder,
+	      colorifyFolder,
+	      sepiaFolder,
+	      kaleidoFolder;
+    var effectComposer;
+    var shaderNameList = [];
+    var folderObjs = [];
+
+
+    /**
+     * 初始化控制器
+     * @return {[type]} [description]
+     */
+    function initControler(){
+    	controls = new function () {
+	      this.rotationSpeed = 0.02; // 旋转速度
+	      this.bumpScale = 0.25; // 地面起伏
+	      this.specular = '#FFFFFF';
+	      this.shininess = 1;
+	      this.selectEffect = "none";
+	    };
+	    mirrorContr = new function(){
+	    	this.side = 1;
+				this.updateArgs = function(){
+					mirror.uniforms.side.value = mirrorContr.side;
+				}
+	    }
+	    hueSaturationContr = new function(){
+	    	this.hue = 0.01;
+        this.saturation = 0.01;
+	    	this.updateArgs = function(){
+	    		hueSaturation.uniforms.hue.value = hueSaturationContr.hue;
+	    		hueSaturation.uniforms.saturation.value = hueSaturationContr.saturation;
+	    	}
+	    }
+	    vignetteContr = new function(){
+	    	this.offset = 1;
+        this.darkness = 1;
+	    	this.updateArgs = function(){
+	    		vignette.uniforms.offset.value = vignetteContr.offset;
+	    		vignette.uniforms.darkness.value = vignetteContr.darkness;
+	    	}
+	    }
+	    colorCorrectionContr = new function(){
+	    	this.powRGB_R = 2;
+        this.mulRGB_R = 1;
+        this.powRGB_G = 2;
+        this.mulRGB_G = 1;
+        this.powRGB_B = 2;
+        this.mulRGB_B = 1;
+	    	this.updateArgs = function(){
+	    		colorCorrection.uniforms.powRGB.value = new THREE.Vector3( 
+	    			colorCorrectionContr.powRGB_R, colorCorrectionContr.powRGB_G, colorCorrectionContr.powRGB_B );
+	    		colorCorrection.uniforms.mulRGB.value = new THREE.Vector3( 
+	    			colorCorrectionContr.mulRGB_R, colorCorrectionContr.mulRGB_G, colorCorrectionContr.mulRGB_B );
+	    	}
+	    }
+    	rgbShiftContr = new function(){
+	    	this.rgbAmount = 0.005;
+        this.angle = 0.0;
+	    	this.updateArgs = function(){
+	    		rgbShift.uniforms.amount.value = rgbShiftContr.rgbAmount;
+	    		rgbShift.uniforms.angle.value = rgbShiftContr.angle;
+	    	}
+	    }
+    	brightnessContrastContr = new function(){
+	    	this.brightness = 0.01;
+        this.contrast = 0.01;
+	    	this.updateArgs = function(){
+	    		brightnessContrast.uniforms.brightness.value = brightnessContrastContr.brightness;
+	    		brightnessContrast.uniforms.contrast.value = brightnessContrastContr.contrast;
+	    	}
+	    }
+    	colorifyContr = new function(){
+	    	this.color = 0xffffff;
+	    	this.updateArgs = function(){
+	    		colorify.uniforms.color.value = new THREE.Color(colorifyContr.color);
+	    	}
+	    }
+    	sepiaContr = new function(){
+	    	this.amount = 1;
+	    	this.updateArgs = function(){
+	    		sepia.uniforms.amount.value = sepiaContr.amount;
+	    	}
+	    }
+    	kaleidoContr = new function(){
+	    	this.kalAngle = 0;
+        this.kalSides = 6;
+	    	this.updateArgs = function(){
+	    		kaleido.uniforms.angle.value = kaleidoContr.kalAngle;
+	    		kaleido.uniforms.sides.value = kaleidoContr.kalSides;
+	    	}
+	    }
+
+    	gui = new dat.GUI();
+    	gui.add(controls, 'rotationSpeed', 0, 0.5);
+
+  		mirrorFolder = gui.addFolder("mirror")
+      hueSaturationFolder = gui.addFolder("hueSaturation")
+      vignetteFolder = gui.addFolder("vignette")
+      colorCorrectionFolder = gui.addFolder("colorCorrection")
+      rgbShiftFolder = gui.addFolder("rgbShift")
+      brightnessContrastFolder = gui.addFolder("brightnessContrast")
+      colorifyFolder = gui.addFolder("colorify")
+      sepiaFolder = gui.addFolder("sepia")
+      kaleidoFolder = gui.addFolder("kaleido")
+
+      mirrorFolder.add(mirrorContr, 'side', 0, 3).step(1).onChange(mirrorContr.updateArgs);
+
+      hueSaturationFolder.add(hueSaturationContr, 'hue', -1, 1).step(0.01).onChange(hueSaturationContr.updateArgs);
+      hueSaturationFolder.add(hueSaturationContr, 'saturation', -1, 1).step(0.01).onChange(hueSaturationContr.updateArgs);
+
+      vignetteFolder.add(vignetteContr, 'offset', 0, 2).onChange(vignetteContr.updateArgs);
+      vignetteFolder.add(vignetteContr, 'darkness', 0, 2).onChange(vignetteContr.updateArgs);
+
+      colorCorrectionFolder.add(colorCorrectionContr, "powRGB_R", 0, 5).onChange(colorCorrectionContr.updateArgs);
+      colorCorrectionFolder.add(colorCorrectionContr, "powRGB_G", 0, 5).onChange(colorCorrectionContr.updateArgs);
+      colorCorrectionFolder.add(colorCorrectionContr, "powRGB_B", 0, 5).onChange(colorCorrectionContr.updateArgs);
+      colorCorrectionFolder.add(colorCorrectionContr, "mulRGB_R", 0, 5).onChange(colorCorrectionContr.updateArgs);
+      colorCorrectionFolder.add(colorCorrectionContr, "mulRGB_G", 0, 5).onChange(colorCorrectionContr.updateArgs);
+      colorCorrectionFolder.add(colorCorrectionContr, "mulRGB_B", 0, 5).onChange(colorCorrectionContr.updateArgs);
+
+      rgbShiftFolder.add(rgbShiftContr, 'rgbAmount', 0, 0.1).step(0.001).onChange(rgbShiftContr.updateArgs);
+      rgbShiftFolder.add(rgbShiftContr, 'angle', 0, Math.PI).step(0.001).onChange(rgbShiftContr.updateArgs);
+
+      brightnessContrastFolder.add(brightnessContrastContr, 'brightness', -1, 1).onChange(brightnessContrastContr.updateArgs);
+      brightnessContrastFolder.add(brightnessContrastContr, 'contrast', -1, 1).onChange(brightnessContrastContr.updateArgs);
+
+      colorifyFolder.addColor(colorifyContr, 'color').onChange(colorifyContr.updateArgs);
+
+      sepiaFolder.add(sepiaContr, 'amount', 0, 2).step(0.1).onChange(sepiaContr.updateArgs);
+
+      kaleidoFolder.add(kaleidoContr, 'kalAngle', -2 * Math.PI, 2 * Math.PI).onChange(kaleidoContr.updateArgs);
+      kaleidoFolder.add(kaleidoContr, 'kalSides', 2, 20).onChange(kaleidoContr.updateArgs);
+
+    }
+
+    function openFolder(name){
+    	name == 'mirror' ? mirrorFolder.open() : mirrorFolder.close();
+      name == 'hueSaturation' ? hueSaturationFolder.open() : hueSaturationFolder.close()
+      name == 'vignette' ? vignetteFolder.open() : vignetteFolder.close()
+      name == 'colorCorrection' ? colorCorrectionFolder.open() : colorCorrectionFolder.close()
+      name == 'rgbShift' ? rgbShiftFolder.open() : rgbShiftFolder.close()
+      name == 'brightness' ? brightnessFolder.open() : brightnessContrastFolder.close()
+      name == 'colorify' ? colorifyFolder.open() : colorifyFolder.close()
+      name == 'sepia' ? sepiaFolder.open() : sepiaFolder.close()
+      name == 'kaleido' ? kaleidoFolder.open() : kaleidoFolder.close()
+    }
+
+    /**
+     * 在数据处理完成后，再添加控制器
+     */
+    function addControls(){
+    	// 添加选择效果控制
+    	shaderNameList.splice(0, 0, "none");
+    	gui.add(controls, 'selectEffect', shaderNameList).onChange(function(e){
+    		for(var i=1, len = effectComposer.passes.length - 1; i<len; i++){
+    			if(effectComposer.passes[i].effectName == e){
+    				effectComposer.passes[i].enabled = true; // 仅开启一个效果
+    				openFolder(e);
+    			}else{
+    				effectComposer.passes[i].enabled = false;
+    			}
+    		}
+    	})
+    }
+
+    /**
+     * 创建本例中的shader
+     * @return {[type]} [description]
+     */
+    function createShaders(){
+    	// 为部分屏幕创建镜面效果
+    	mirror = new THREE.ShaderPass(THREE.MirrorShader); mirror.enabled = false; 
+    	mirror.effectName = "mirror";
+    	// 改变颜色的色调和饱和度
+    	hueSaturation = new THREE.ShaderPass(THREE.HueSaturationShader); hueSaturation.enabled = false;
+    	hueSaturation.effectName = "hueSaturation";
+    	// 添加晕映效果，在图片中央周围显示黑色的边框
+    	vignette = new THREE.ShaderPass(THREE.VignetteShader); vignette.enabled = false;
+    	vignette.effectName = "vignette";
+    	// 调整颜色的分布
+      colorCorrection = new THREE.ShaderPass(THREE.ColorCorrectionShader); colorCorrection.enabled = false;
+      colorCorrection.effectName = "colorCorrection";
+      // 将颜色的红绿蓝分开
+      rgbShift = new THREE.ShaderPass(THREE.RGBShiftShader); rgbShift.enabled = false;
+      rgbShift.effectName = "rgbShift";
+      // 更改图片的亮度和对比度
+      brightnessContrast = new THREE.ShaderPass(THREE.BrightnessContrastShader); brightnessContrast.enabled = false;
+      brightnessContrast.effectName = "brightnessContrast";
+      // 在屏幕上蒙上一层颜色
+      colorify = new THREE.ShaderPass(THREE.ColorifyShader); colorify.enabled = false;
+      colorify.effectName = "colorify";
+      // 在屏幕上蒙上类似乌贼墨的效果
+      sepia = new THREE.ShaderPass(THREE.SepiaShader); sepia.enabled = false;
+      sepia.effectName = "sepia";
+      // 类似万花筒效果，场景中心呈径向反射状
+      kaleido = new THREE.ShaderPass(THREE.KaleidoShader); kaleido.enabled = false;
+      kaleido.effectName = "kaleido";
+      // 发光体
+      luminosity = new THREE.ShaderPass(THREE.LuminosityShader); luminosity.enabled = false;
+      luminosity.effectName = "luminosity";
+      // 类似旧电影中的两条染印法彩色效果
+      technicolor = new THREE.ShaderPass(THREE.TechnicolorShader); technicolor.enabled = false;
+      technicolor.effectName = "technicolor";
+      // 暂时未知
+      unpackDepthRGBA = new THREE.ShaderPass(THREE.UnpackDepthRGBAShader); unpackDepthRGBA.enabled = false;
+      unpackDepthRGBA.effectName = "unpackDepthRGBA";
+
+      // 创建场景渲染通道，并创建渲染输出对象
+      var renderPass = new THREE.RenderPass(scene, camera);
+      var effectCopy = new THREE.ShaderPass(THREE.CopyShader);
+      effectCopy.renderToScreen = true;
+
+      // 创建效果组合器
+      effectComposer = new THREE.EffectComposer(renderer);
+      effectComposer.addPass(renderPass);
+      effectComposer.addPass(mirror);
+      effectComposer.addPass(hueSaturation);
+      effectComposer.addPass(vignette);
+      effectComposer.addPass(colorCorrection);
+      effectComposer.addPass(rgbShift);
+      effectComposer.addPass(brightnessContrast);
+      effectComposer.addPass(colorify);
+      effectComposer.addPass(sepia);
+      effectComposer.addPass(kaleido);
+      effectComposer.addPass(luminosity);
+      effectComposer.addPass(technicolor);
+      effectComposer.addPass(unpackDepthRGBA);
+      effectComposer.addPass(effectCopy);
+
+      getShaderNameList(effectComposer);
+    }
+
+    /**
+     * 获取组合器中我们自定义的shaderName
+     * @param  {[type]} composer [description]
+     * @return {[type]}          [description]
+     */
+    function getShaderNameList(composer){
+    	// 头尾都是非效果shader
+    	for(var i=1, len = composer.passes.length - 1; i<len; i++){
+    		shaderNameList.push(composer.passes[i].effectName);
+    	}
+    }
+
+    /**
+     * 渲染
+     * @return {[type]} [description]
+     */
+    function render(){
+    	stats.update(); // 即时更新FPS
+
+    	step += controls.rotationSpeed;
+
+    	// 旋转立方体
+    	cube1.rotation.set(step, step, step);
+    	cube2.rotation.set(step, step, step);
+    	cube3.rotation.set(step, step, step);
+
+			earth.rotation.y = step;    	
+
+    	// 使用帧动画函数
+    	requestAnimationFrame(render);
+    	// renderer.render( scene, camera );
+    	
+    	effectComposer.render();
+    }
+
+		/**
+		 * 初始化所有配置
+		 * @return {[type]} [description]
+		 */
+		function init(){
+			// 初始化组件
+			var stats = initStats();
+			// 创建场景
+			scene = new THREE.Scene();
+			// 创建相机
+			camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 1000 );
+			camera.position.x = -25;
+			camera.position.y = 25;
+			camera.position.z = 25;
+			camera.lookAt(scene.position); // 视线指向场景中心
+			// 创建渲染器
+			renderer = new THREE.WebGLRenderer();
+
+			// 擦除背景色
+			renderer.setClearColor(new THREE.Color( 0xEEEEEE, 1.0 ));
+			renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
+			renderer.shadowMapEnabled = true; // 启用阴影贴图
+
+			// 配置控制器
+			initControler();
+
+			// 展示辅助观察的世界坐标系
+      var axes = new THREE.AxisHelper(20);
+      scene.add(axes);
+
+			createPlane();
+			plane.receiveShadow = true; // 接收阴影
+			// 旋转并设置位置
+			plane.rotation.x = -0.5 * Math.PI; // x轴旋转-90
+			plane.position.x = 15;
+			plane.position.y = 0;
+			plane.position.z = 0;
+			// 加入至场景
+			scene.add(plane);
+
+			// 红色方块
+			cube1 = createCube(0xFF0000);
+			cube1.castShadow = true; // 投射阴影
+			cube1.position.set(-16, 3, -5);
+			// 绿色方块
+			cube2 = createCube(0x00FF00);
+			cube2.castShadow = true; // 投射阴影
+			cube2.position.set(-8, 3, -5);
+			// 蓝色方块
+			cube3 = createCube(0x0000FF);
+			cube3.castShadow = true; // 投射阴影
+			cube3.position.set(0, 3, -5);
+			scene.add(cube1);
+			scene.add(cube2);
+			scene.add(cube3);
+
+			// 创建球体
+			var sphereGeometry = new THREE.SphereGeometry( 4, 60, 60 );
+			earth = createSpecularMesh(sphereGeometry, 
+				"../assets/textures/planets/Earth.png",
+				"../assets/textures/planets/EarthNormal.png",
+				"../assets/textures/planets/EarthSpec.png");
+			earth.castShadow = true;
+			earth.position.set(-5, 5, 12);
+			scene.add(earth);
+
+			// 添加环境光
+			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
+			scene.add(ambientLight);
+
+			// 添加点光源,作为产生阴影的光源
+			var spotLight = new THREE.SpotLight(0xFFFFFF);
+			spotLight.position.set(-40, 60, -10);
+			spotLight.castShadow = true;
+			scene.add(spotLight);
+
+			// 把渲染内容输出至dom中
+			document.getElementById("webgl-output").appendChild(renderer.domElement);
+
+			createShaders();
+
+			addControls();
+			
+			// 开始渲染
+			render();
+		}
+
+		function createPlane(){
+			// 创建地面
+			var planeGeometry = new THREE.PlaneBufferGeometry( 200, 200, 50, 50 ); // 几何体类型对象
+			plane = createBumpMesh(planeGeometry, 
+				"../assets/textures/general/stone.jpg", 
+				"../assets/textures/general/stone-bump.jpg"); // 创建网格
+			plane.material.map.wrapS = THREE.RepeatWrapping;
+      plane.material.map.wrapT = THREE.RepeatWrapping;
+      plane.material.bumpMap.wrapS = THREE.RepeatWrapping;
+      plane.material.bumpMap.wrapT = THREE.RepeatWrapping;
+      plane.material.map.repeat.set(20, 20);
+      // plane.material.needsUpdate = true;
+		}
+
+		function createCube(colorHex){
+			// 创建立方体
+			var cubeGeometry = new THREE.BoxGeometry( 4, 4, 4 );
+			var cubeMaterial = new THREE.MeshLambertMaterial( {color: colorHex} );
+			var mesh = new THREE.Mesh( cubeGeometry, cubeMaterial );
+			return mesh;
+		}
+
+		/**
+		 * 创建高光纹理网格对象
+		 * @param  {[type]} geometry        [description]
+		 * @param  {[type]} imagePath       [description]
+		 * @param  {[type]} normalImgPath   [description]
+		 * @param  {[type]} specularImgPath [description]
+		 * @return {[type]}                 [description]
+		 */
+		function createSpecularMesh(geometry, imagePath, normalImgPath, specularImgPath){
+      var texture = THREE.ImageUtils.loadTexture(imagePath);
+      var material = new THREE.MeshPhongMaterial();
+      material.map = texture;
+      if(specularImgPath){
+        var normalTexture = THREE.ImageUtils.loadTexture(normalImgPath);
+        var specularTexture = THREE.ImageUtils.loadTexture(specularImgPath);
+        material.normalMap = normalTexture;
+        material.specularMap = specularTexture;
+        material.specular = new THREE.Color(controls.specular);
+        material.shininess = controls.shininess;
+      }
+      var mesh = new THREE.Mesh( geometry, material );
+      return mesh;
+    }
+
+		/**
+		 * 创建凹凸网格
+		 * @param  {[type]} geometry    [description]
+		 * @param  {[type]} imagePath   [description]
+		 * @param  {[type]} bumpImgPath [description]
+		 * @return {[type]}             [description]
+		 */
+		function createBumpMesh(geometry, imagePath, bumpImgPath){
+    	var texture = THREE.ImageUtils.loadTexture(imagePath);
+    	var material = new THREE.MeshPhongMaterial();
+    	material.map = texture;
+    	if(bumpImgPath){
+    		var bumpTexture = THREE.ImageUtils.loadTexture(bumpImgPath);
+    		// 给材质对象设置凹凸图
+    		material.bumpMap = bumpTexture;
+    		material.bumpScale = controls.bumpScale; // 正数是凸，负数是凹
+    	}
+    	// 这里的几何体如果不重新计算顶点的法向量，凹凸贴图的光照效果会大打折扣
+    	geometry.computeVertexNormals();
+    	var mesh = new THREE.Mesh( geometry, material );
+    	return mesh;
+    }
+
+		/**
+     * 初始化性能检测器
+     * @return {[type]} [description]
+     */
+    function initStats(){
+    	stats = new Stats();
+    	stats.setMode(0); // 0: fps, 1: ms
+    	stats.domElement.style.position = 'absolute';
+      stats.domElement.style.left = '0px';
+      stats.domElement.style.top = '0px';
+
+      document.getElementById("stats-output").appendChild(stats.domElement);
+    }
+
+		/**
+		 * 窗口大小被重置
+		 * @return {[type]} [description]
+		 */
+		function onResizeWindow(){
+			// 相机宽高比
+			camera.aspect = window.innerWidth/window.innerHeight;
+			camera.updateProjectionMatrix();
+			renderer.setSize( window.innerWidth, window.innerHeight );
+		}
+
+		window.onload = init;
+
+		window.addEventListener('resize', onResizeWindow, false);
+
+	</script>
+</body>
+</html>
