@@ -22,9 +22,6 @@
 	<script type="text/javascript" src="../lib/controls/OrbitControls.js"></script>
 	<!-- ammo.js的包装器，属于简单应用引擎的threejs插件 -->
 	<script type="text/javascript" src="../lib/physi.js"></script>
-	<!-- 这里加入颜色处理器，生成指定范围并好看的颜色, 并进行各种格式的转换 -->
-	<script type="text/javascript" src="../lib/chroma.js"></script>
-
 	<script type="text/javascript" src="../lib/dat.gui.js"></script>
 
 	<script type="text/javascript">
@@ -46,27 +43,12 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var ground, dominos = [], spheres = [], cubes = [];
-		var groundMaterial;
+		var ground, dominos = [];
 		// 场景相关控制变量
-		var step = 0, direction = 1; // 记录增量
-    var controls,
-    		materialContr;
+		var step = 0; // 记录弹跳的增量
+    var controls;
     var clock;
     var orbitControls;
-    // 指定生成颜色的范围
-    var colorScale = chroma.scale(['white', 'blue', 'red', 'yellow']);
-
-    /**
-     * ===============================
-     * 目前经过测试：这套东西的问题主要有：
-     * 1. 当场景中所有加载完成后，如果地面是静态的，当其他物体生成至场景中后，再转动地面，则会产生一些相交检测bug，
-     * 因此解决方案是地面如果是先静态后动态，最好的方式是不先转动地面，再生成物体，这样一来相交检测的问题即可解决
-     * 2. 尽量避免地面角度变化太快，这样会导致物体与地面间的相交性检测运行不过来，而出现一些穿透、弹跳现象。
-     * 3. 动态改变已经生产的物体材质会目前没有看到有有效的方法。
-     * 
-     * ===============================
-     */
 
     /**
      * 初始化控制器
@@ -80,82 +62,14 @@
         this.start = function(){
         	pushFirstDomino();
         }
-        // 使地面倾斜 22.5°
-	    	this.rotationSpeed = 0.0005;
-	    	this.slopeGround = false;
-	    	this.resetGround = function(){
-	    		controls.slopeGround = false;
-	    		step = 0;
-	    		ground.rotation.z = step ;
-					ground.__dirtyRotation = true;
-	    	}
-	    	this.loadDominos = function(){
-	    		var points = createPoints();
-	    		loadDominoObjects(points);
-	    	}
-	    	this.addSphere = function(){
-	    		addRandomSpheres();
-	    	}
-	    	this.addCube = function(){
-	    		addRandomCubes();
-	    	}
-	    	this.clearMesh = function(){
-	    		dominos.forEach(function(e){
-	    			scene.remove(e);
-	    		})
-	    		dominos = [];
-	    		spheres.forEach(function(e){
-	    			scene.remove(e);
-	    		})
-	    		spheres = [];
-	    		cubes.forEach(function(e){
-	    			scene.remove(e);
-	    		})
-	    		cubes = [];
-	    	}
-
 	    };
-	    materialContr = new function(){
-	    	// Friction: 摩擦力系数
-	    	// Restitution: 回弹系数
-	    	this.cubeFriction = 0.9;  // 地面高摩擦,低回弹
-	    	this.cubeRestitution = 0.3; 
-	    	this.sphereFriction = 0.1;  // 球体低摩擦，高回弹
-	    	this.sphereRestitution = 0.9;
-	    	
-	    	this.updatePlaneMaterial = function(){
-	    		// 暂时测试出对已生成的材质修改是失效的
-	    		// ground.material._physijs.friction = materialContr.planeFriction;
-	    		// ground.material._physijs.restitution = materialContr.planeRestitution;
-	    		// ground.material.needsUpdate = true;
-	    	}
-	    }
 
     	gui = new dat.GUI();
     	gui.add(controls, 'start');
-    	
-    	gui.add(controls, 'loadDominos');
-    	gui.add(controls, 'addCube');
-    	gui.add(controls, 'addSphere');
-    	gui.add(controls, 'clearMesh');
-
-    	var groundFolder = gui.addFolder("Ground Controls");
-    	groundFolder.add(controls, 'rotationSpeed', 0, 0.005);
-    	// 注意：这里虽然可以尝试使用动态调整角度测试效果，经测试地面角度变化太快容易卡bug（即相交检测有问题）
-    	// 所以方法中的角度变换采用递增式变化
-    	groundFolder.add(controls, 'slopeGround').listen();
-    	groundFolder.add(controls, 'resetGround');
-
-    	var gravityFolder = gui.addFolder("Gravity Controls");
-    	gravityFolder.add(controls, 'gravityX', -100, 100).onChange(setSceneGravity);
-    	gravityFolder.add(controls, 'gravityY', -100, 100).onChange(setSceneGravity);
-    	gravityFolder.add(controls, 'gravityZ', -100, 100).onChange(setSceneGravity);
-
-    	var materialFolder = gui.addFolder("Material Controls");
-    	materialFolder.add(materialContr, 'cubeFriction', 0, 1);
-    	materialFolder.add(materialContr, 'cubeRestitution', 0, 1);
-    	materialFolder.add(materialContr, 'sphereFriction', 0, 1);
-    	materialFolder.add(materialContr, 'sphereRestitution', 0, 1);
+    	var folder = gui.addFolder("GravityControls");
+    	folder.add(controls, 'gravityX', -100, 100).onChange(setSceneGravity);
+    	folder.add(controls, 'gravityY', -100, 100).onChange(setSceneGravity);
+    	folder.add(controls, 'gravityZ', -100, 100).onChange(setSceneGravity);
     }
 
     /**
@@ -167,15 +81,6 @@
     	stats.update(); // 即时更新FPS
     	
     	orbitControls.update(delta);
-
-    	// 启动旋转地面
-    	if(controls.slopeGround){
-    		step += controls.rotationSpeed * direction;
-    		if(step >= Math.PI/6) direction = -1;
-    		if(step <= -Math.PI/6) direction = 1;
-    		ground.rotation.z = step ;
-				ground.__dirtyRotation = true;
-    	}
 
     	scene.simulate(undefined, 1);
 
@@ -223,11 +128,11 @@
 
       createGround();
 
-      // var points = createPoints();
+      var points = createPoints();
 
       setSceneGravity();
 
-      // loadDominoObjects(points);
+      loadDominoObjects(points);
 
 			// 添加环境光
 			var ambientLight = new THREE.AmbientLight( 0x0C0C0C );
@@ -247,56 +152,7 @@
 			render();
 		}
 
-		/**
-		 * 随机生成多个立方体
-		 */
-		function addRandomCubes(){
-			var cubeColor = colorScale(Math.random()).hex();
-			// 随机生成数目限制在2~5之间
-			var randomNum = Math.abs(Math.floor(Math.random() * 10) - 5);
-			randomNum = randomNum < 2 ? 2 : randomNum;
-			for(var i=0; i < randomNum; i++){
-				var geometry = new THREE.BoxGeometry( 2, 2, 2 );
-				var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
-					color: cubeColor
-				}), materialContr.cubeFriction, materialContr.cubeRestitution);
-				// 随机质量(暂时该属性不确认是质量，后面研究源码后再处理)
-				// var mass =  Math.abs(Math.floor(Math.random() * 40) - 10); // 10~30
-				var cube = new Physijs.BoxMesh(geometry, material);
-				// 指定同一高度下落，观察质量不同的小球的反应（建立在可以设定质量的情况下）
-				cube.position.set(Math.random() * 50 - 25, 13, Math.random() * 50 - 25);
-				scene.add(cube);
-				cubes.push(cube);
-			}
-		}
-
-		/**
-		 * 随机生成多个球体
-		 */
-		function addRandomSpheres(){
-			var sphereColor = colorScale(Math.random()).hex();
-			// 随机生成数目限制在2~5之间
-			var randomNum = Math.abs(Math.floor(Math.random() * 10) - 5);
-			randomNum = randomNum < 2 ? 2 : randomNum;
-			for(var i=0; i < randomNum; i++){
-				var geometry = new THREE.SphereGeometry( 1, 20, 20 );
-				var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
-					color: sphereColor
-				}), materialContr.sphereFriction, materialContr.sphereRestitution);
-				// 随机质量(暂时该属性不确认是质量，后面研究源码后再处理)
-				// var mass =  Math.abs(Math.floor(Math.random() * 40) - 10); // 10~30
-				var sphere = new Physijs.SphereMesh(geometry, material);
-				// 指定同一高度下落，观察质量不同的小球的反应（建立在可以设定质量的情况下）
-				sphere.position.set(Math.random() * 50 - 25, 13, Math.random() * 50 - 25);
-				scene.add(sphere);
-				spheres.push(sphere);
-			}
-		}
-
-		function pushFirstDomino(){
-			dominos[0].rotation.z = -0.4; // 这里的旋转轴不对，后面再更改得自然些
-			dominos[0].__dirtyRotation = true; // 开启不自由转动开关，即可直接改变某个物体对象的旋转状态
-		}
+		
 
 		/**
 		 * 给场景设置重力
@@ -316,7 +172,7 @@
 					color: Math.random() * 0xFFFFFF,
 					opacity: 0.9,
 					transparent: true
-				}), 0.4, 0.4); // 这里设置摩擦力和回弹都偏中
+				})); // 这里不设置摩擦力和回弹
 				var domino = new Physijs.BoxMesh(geometry, material); // 这里也不设置质量
 				domino.position.copy(point);
 				domino.position.y = 3.5; // 确保骨牌底部贴紧地面
@@ -363,18 +219,16 @@
       return points;
 		}
 
-		
-
 		/**
 		 * 创建有包围的地面
 		 * @return {[type]} [description]
 		 */
 		function createGround(){
 			// 参数：THREE材质对象，摩擦力系数，回弹系数
-			groundMaterial = Physijs.createMaterial(
+			var groundMaterial = Physijs.createMaterial(
 				new THREE.MeshPhongMaterial( {
 					map: THREE.ImageUtils.loadTexture("../assets/textures/general/wood-2.jpg")
-				} ), materialContr.planeFriction, materialContr.planeRestitution);
+				} ), 0.9, 0.3);
 			// 参数：几何对象，材质，质量
 			ground = new Physijs.BoxMesh(new THREE.BoxGeometry(60, 1, 60), groundMaterial, 0);
 			// 左边框
