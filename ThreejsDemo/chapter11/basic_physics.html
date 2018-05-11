@@ -24,6 +24,8 @@
 	<script type="text/javascript" src="../lib/physi.js"></script>
 	<!-- 这里加入颜色处理器，生成指定范围并好看的颜色, 并进行各种格式的转换 -->
 	<script type="text/javascript" src="../lib/chroma.js"></script>
+	<!-- 噪音生成器 -->
+	<script type="text/javascript" src="../lib/perlin.js"></script>
 
 	<script type="text/javascript" src="../lib/dat.gui.js"></script>
 
@@ -46,10 +48,9 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var ground, dominos = [], spheres = [], cubes = [];
-		var groundMaterial;
+		var ground, meshs = [];
 		// 场景相关控制变量
-		var step = 0, direction = 1; // 记录增量
+		var step = 0, direction = 1, fallDownHight = 15; // 记录增量
     var controls,
     		materialContr;
     var clock;
@@ -74,10 +75,28 @@
      */
     function initControler(){
     	controls = new function () {
+    		this.groundType = "plane";
+    		this.selectPlaneGround = function(){
+    			controls.groundType = "plane";
+    			scene.remove(ground);
+    			controls.clearMesh();
+
+    			createGround();
+    		}
+    		this.selectHightMapGround = function(){
+    			controls.groundType = "hightMap";
+    			scene.remove(ground);
+    			controls.clearMesh();
+
+    			var date = new Date();
+          var pn = new Perlin('rnd' + date.getTime());
+    			createHightMapGround(pn);
+    		}
+
     		this.gravityX = 0;
         this.gravityY = -50;
         this.gravityZ = 0;
-        this.start = function(){
+        this.startDomino = function(){
         	pushFirstDomino();
         }
         // 使地面倾斜 22.5°
@@ -86,8 +105,12 @@
 	    	this.resetGround = function(){
 	    		controls.slopeGround = false;
 	    		step = 0;
-	    		ground.rotation.z = step ;
-					ground.__dirtyRotation = true;
+	    		if(controls.groundType == 'plane'){
+	    			ground.rotation.z = step ;
+	    		}else if(controls.groundType == 'hightMap'){
+	    			ground.rotation.y = step;
+	    		}
+	    		ground.__dirtyRotation = true;
 	    	}
 	    	this.loadDominos = function(){
 	    		var points = createPoints();
@@ -99,21 +122,24 @@
 	    	this.addCube = function(){
 	    		addRandomCubes();
 	    	}
-	    	this.clearMesh = function(){
-	    		dominos.forEach(function(e){
-	    			scene.remove(e);
-	    		})
-	    		dominos = [];
-	    		spheres.forEach(function(e){
-	    			scene.remove(e);
-	    		})
-	    		spheres = [];
-	    		cubes.forEach(function(e){
-	    			scene.remove(e);
-	    		})
-	    		cubes = [];
+	    	this.addCylinder = function(){
+	    		addRandomCylinders();
 	    	}
-
+	    	this.addCone = function(){
+	    		addRandomCones();
+	    	}
+	    	this.addCapsules = function(){
+	    		addRandomCapsules();
+	    	}
+	    	this.addConvexs = function(){
+	    		addRandomConvexs();
+	    	}
+	    	this.clearMesh = function(){
+	    		meshs.forEach(function(e){
+	    			scene.remove(e);
+	    		})
+	    		meshs = [];
+	    	}
 	    };
 	    materialContr = new function(){
 	    	// Friction: 摩擦力系数
@@ -132,11 +158,19 @@
 	    }
 
     	gui = new dat.GUI();
-    	gui.add(controls, 'start');
+    	gui.add(controls, 'groundType').listen();
+    	gui.add(controls, 'selectPlaneGround');
+    	gui.add(controls, 'selectHightMapGround');
+    	gui.add(controls, 'startDomino');
     	
     	gui.add(controls, 'loadDominos');
     	gui.add(controls, 'addCube');
     	gui.add(controls, 'addSphere');
+    	gui.add(controls, 'addCylinder');
+    	gui.add(controls, 'addCone');
+    	gui.add(controls, 'addCapsules');
+    	gui.add(controls, 'addConvexs');
+
     	gui.add(controls, 'clearMesh');
 
     	var groundFolder = gui.addFolder("Ground Controls");
@@ -173,7 +207,11 @@
     		step += controls.rotationSpeed * direction;
     		if(step >= Math.PI/6) direction = -1;
     		if(step <= -Math.PI/6) direction = 1;
-    		ground.rotation.z = step ;
+    		if(controls.groundType == 'plane'){
+    			ground.rotation.z = step ;
+    		}else if(controls.groundType == 'hightMap'){
+    			ground.rotation.y = step;
+    		}
 				ground.__dirtyRotation = true;
     	}
 
@@ -263,10 +301,9 @@
 				// 随机质量(暂时该属性不确认是质量，后面研究源码后再处理)
 				// var mass =  Math.abs(Math.floor(Math.random() * 40) - 10); // 10~30
 				var cube = new Physijs.BoxMesh(geometry, material);
-				// 指定同一高度下落，观察质量不同的小球的反应（建立在可以设定质量的情况下）
-				cube.position.set(Math.random() * 50 - 25, 13, Math.random() * 50 - 25);
+				startRandomPosition(cube);
 				scene.add(cube);
-				cubes.push(cube);
+				meshs.push(cube);
 			}
 		}
 
@@ -286,11 +323,114 @@
 				// 随机质量(暂时该属性不确认是质量，后面研究源码后再处理)
 				// var mass =  Math.abs(Math.floor(Math.random() * 40) - 10); // 10~30
 				var sphere = new Physijs.SphereMesh(geometry, material);
-				// 指定同一高度下落，观察质量不同的小球的反应（建立在可以设定质量的情况下）
-				sphere.position.set(Math.random() * 50 - 25, 13, Math.random() * 50 - 25);
+				startRandomPosition(sphere);
 				scene.add(sphere);
-				spheres.push(sphere);
+				meshs.push(sphere);
 			}
+		}
+
+		/**
+		 * 随机生成多个柱状图形（CylinderMesh 使用于一般的，上下大小一致的）
+		 */
+		function addRandomCylinders(){
+			var color = colorScale(Math.random()).hex();
+			// 随机生成数目限制在2~5之间
+			var randomNum = Math.abs(Math.floor(Math.random() * 10) - 5);
+			randomNum = randomNum < 2 ? 2 : randomNum;
+			for(var i=0; i < randomNum; i++){
+				var geometry = new THREE.CylinderGeometry( 1.5, 1.5, 4 );
+				var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
+					color: color
+				}), materialContr.cubeFriction, materialContr.cubeRestitution);
+				var mesh = new Physijs.CylinderMesh(geometry, material);
+				startRandomPosition(mesh);
+				scene.add(mesh);
+				meshs.push(mesh);
+			}
+		}
+
+		/**
+		 * 随机生成多个圆锥体（ConeMesh 使用上下大小不一致的）
+		 */
+		function addRandomCones(){
+			var color = colorScale(Math.random()).hex();
+			// 随机生成数目限制在2~5之间
+			var randomNum = Math.abs(Math.floor(Math.random() * 10) - 5);
+			randomNum = randomNum < 2 ? 2 : randomNum;
+			for(var i=0; i < randomNum; i++){
+				var geometry = new THREE.CylinderGeometry( 0, 2, 5, 15, 6 );
+				var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
+					color: color
+				}), materialContr.cubeFriction, materialContr.cubeRestitution);
+				var mesh = new Physijs.ConeMesh(geometry, material);
+				startRandomPosition(mesh);
+				scene.add(mesh);
+				meshs.push(mesh);
+			}
+		}
+
+		/**
+		 * 随机生成多个由多个几何体组合而成的胶囊体（CapsuleMesh 使用跟CylinderMesh类似）
+		 */
+		function addRandomCapsules(){
+			var color = colorScale(Math.random()).hex();
+			// 随机生成数目限制在2~5之间
+			var randomNum = Math.abs(Math.floor(Math.random() * 10) - 5);
+			randomNum = randomNum < 2 ? 2 : randomNum;
+			for(var i=0; i < randomNum; i++){
+				var mergeGeom = new THREE.Geometry();
+				// 创建好要合并的几何对象
+				var cylinderGeom = new THREE.CylinderGeometry(1, 1, 4);
+        var topSphereGeom = new THREE.SphereGeometry(1);
+        var bottomSphereGeom = new THREE.SphereGeometry(1);
+        // 分别给在合并几何体过程中哪些需要进行相对位移/旋转的对象生成变换矩阵
+        var matrix1 = new THREE.Matrix4().makeTranslation(0, 2, 0);
+        var matrix2 = new THREE.Matrix4().makeTranslation(0, -2, 0);
+        topSphereGeom.applyMatrix(matrix1);
+        bottomSphereGeom.applyMatrix(matrix2);
+        // 合并图形
+        mergeGeom.merge(topSphereGeom);
+        mergeGeom.merge(bottomSphereGeom);
+        mergeGeom.merge(cylinderGeom);
+
+				var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
+					color: color
+				}), materialContr.sphereFriction, materialContr.sphereRestitution);
+				var mesh = new Physijs.CapsuleMesh(mergeGeom, material);
+				startRandomPosition(mesh);
+				scene.add(mesh);
+				meshs.push(mesh);
+			}
+		}
+
+		/**
+		 * 随机生成多个凸包（ConvexMesh 可用于多数的复杂图形，可以创建一个模拟复杂图形的凸包）
+		 */
+		function addRandomConvexs(){
+			var color = colorScale(Math.random()).hex();
+			// 随机生成数目限制在2~5之间
+			var randomNum = Math.abs(Math.floor(Math.random() * 10) - 5);
+			randomNum = randomNum < 2 ? 2 : randomNum;
+			for(var i=0; i < randomNum; i++){
+				var geometry = new THREE.TorusKnotGeometry( 0.5, 0.3, 64, 8, 2, 3, 10 );
+				var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
+					color: color
+				}), materialContr.cubeFriction, materialContr.cubeRestitution);
+				var mesh = new Physijs.ConvexMesh(geometry, material);
+				startRandomPosition(mesh);
+				scene.add(mesh);
+				meshs.push(mesh);
+			}
+		}
+
+		/**
+		 * 设置物体在随机位置
+		 * @param  {[type]} obj [description]
+		 * @return {[type]}     [description]
+		 */
+		function startRandomPosition(obj){
+			// 指定同一高度下落，观察质量不同的小球的反应（建立在可以设定质量的情况下）
+			obj.position.set(Math.random() * 50 - 25, fallDownHight, Math.random() * 50 - 25);
 		}
 
 		function pushFirstDomino(){
@@ -371,7 +511,7 @@
 		 */
 		function createGround(){
 			// 参数：THREE材质对象，摩擦力系数，回弹系数
-			groundMaterial = Physijs.createMaterial(
+			var groundMaterial = Physijs.createMaterial(
 				new THREE.MeshPhongMaterial( {
 					map: THREE.ImageUtils.loadTexture("../assets/textures/general/wood-2.jpg")
 				} ), materialContr.planeFriction, materialContr.planeRestitution);
@@ -397,6 +537,39 @@
 			ground.add(borderBottom);
 
 			scene.add(ground);
+		}
+
+		/**
+		 * 创建高度图地形
+		 * @param  {[type]} pn [噪音对象]
+		 * @return {[type]}    [description]
+		 */
+		function createHightMapGround(pn){
+			// 参数：THREE材质对象，摩擦力系数，回弹系数
+			var groundMaterial = Physijs.createMaterial(
+				new THREE.MeshPhongMaterial( {
+					map: THREE.ImageUtils.loadTexture("../assets/grasslight-big.jpg")
+				} ), materialContr.planeFriction, materialContr.planeRestitution);
+			groundMaterial.map.wrapS = THREE.RepeatWrapping;
+			groundMaterial.map.wrapT = THREE.RepeatWrapping;
+			groundMaterial.map.repeat.set(3, 3);
+			var groundGeometry = new THREE.PlaneGeometry(60, 60, 100, 100);
+			for(var i=0, len = groundGeometry.vertices.length; i < len; i++){
+				var vertex = groundGeometry.vertices[i];
+				// 给顶点在x轴和y轴添加噪音处理
+				var value = pn.noise(vertex.x / 10, vertex.y / 10, 0);
+				vertex.z = value * 10;
+			}
+			// 重新计算面的法向量和顶点法向量
+			groundGeometry.computeFaceNormals();
+      groundGeometry.computeVertexNormals();
+      // 后三个参数分别是：mass, xdiv(宽), ydiv(长)
+			ground = new Physijs.HeightfieldMesh(groundGeometry, groundMaterial, 0, 100, 100);
+			ground.rotation.x = -0.5 * Math.PI;
+      // ground.rotation.y = 0.4;
+      ground.receiveShadow = true;
+
+      scene.add(ground);
 		}
 
 		/**
