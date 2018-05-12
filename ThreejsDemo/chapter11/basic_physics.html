@@ -50,13 +50,14 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var ground, meshs = [];
-		var sliderConstraint, doorConstraintLeft, doorConstraintRight, ballPinConstraint;
+		var ground, meshs = [], car;
+		var sliderConstraint, doorConstraintLeft, doorConstraintRight, ballPinConstraint, carConstraint;
 		// 场景相关控制变量
 		var step = 0, direction = 1, fallDownHight = 15; // 记录增量
     var controls,
     		materialContr,
-    		constraintContr;
+    		constraintContr,
+    		carContr;
     var clock;
     var orbitControls;
     // 指定生成颜色的范围
@@ -198,6 +199,33 @@
           ballPinConstraint.setMotorTarget(
           	new THREE.Vector3(constraintContr.motorTargetX, constraintContr.motorTargetY, constraintContr.motorTargetZ));
         }
+        this.addCar = function(){
+        	carConstraint = createCar();
+        }
+	    }
+	    carContr = new function(){
+	    	this.velocity = -2;
+        this.wheelAngle = 0.5;
+        // this.loosenXRight = 0.0001;
+        // this.loosenXLeft = 0.0001;
+        this.changeVelocity = function () {
+          // 如果要加一个马达，当前的约束就会重载
+          car.tlCons.configureAngularMotor(2, 0.1, 0, carContr.velocity, 15000);
+          car.trCons.configureAngularMotor(2, 0.1, 0, carContr.velocity, 15000);
+
+          // 1个马达则表示马达仅可以左右转动
+       		// car.trCons.enableAngularMotor(1);
+
+          // 2个马达可以前后
+          car.tlCons.enableAngularMotor(2);
+          car.trCons.enableAngularMotor(2);
+        };
+        // this.changeOrientation = function () {
+        //   car.brCons.setAngularLowerLimit({x: 0, y: controls.wheelAngle, z: 0.1});
+        //   car.brCons.setAngularUpperLimit({x: controls.loosenXRight, y: controls.wheelAngle, z: 0});
+        //   car.blCons.setAngularLowerLimit({x: controls.loosenXLeft, y: controls.wheelAngle, z: 0.1});
+        //   car.blCons.setAngularUpperLimit({x: 0, y: controls.wheelAngle, z: 0});
+        // }
 	    }
 
     	gui = new dat.GUI();
@@ -246,7 +274,13 @@
     	ballPinFolder.add(constraintContr, 'motorTargetX', -Math.PI / 2, Math.PI / 2).onChange(constraintContr.updateBallPin);
     	ballPinFolder.add(constraintContr, 'motorTargetY', -Math.PI / 2, Math.PI / 2).onChange(constraintContr.updateBallPin);
     	ballPinFolder.add(constraintContr, 'motorTargetZ', -Math.PI / 2, Math.PI / 2).onChange(constraintContr.updateBallPin);
-
+    	
+    	constraintFolder.add(constraintContr, 'addCar');
+    	var carFolder = constraintFolder.addFolder("Control Car");
+    	carFolder.add(carContr, 'velocity', -10, 10).onChange(carContr.changeVelocity);
+      // carFolder.add(carContr, 'wheelAngle', -1, 1).onChange(carContr.changeOrientation);
+      // carFolder.add(carContr, 'loosenXRight', 0, 0.5).step(0.01).onChange(carContr.changeOrientation);
+      // carFolder.add(carContr, 'loosenXLeft', 0, 0.6).step(-0.01).onChange(carContr.changeOrientation);
     }
 
     /**
@@ -595,6 +629,97 @@
       return constraint;
     }
 
+    /**
+     * 创建车轮
+     * @param  {[type]} position [description]
+     * @return {[type]}          [description]
+     */
+    function createWheel(position){
+    	var color = colorScale(Math.random()).hex();
+    	var geometry = new THREE.CylinderGeometry( 2, 2, 1, 15);
+			var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
+				color: color
+			}), 1.0, 0.5);
+			var mesh = new Physijs.CylinderMesh(geometry, material, 100);
+			mesh.rotation.x = Math.PI / 2;
+			mesh.position.copy(position);
+    	return mesh;
+    }
+
+    /**
+     * 创建车子
+     * @return {[type]} [description]
+     */
+    function createCar(){
+    	var color = colorScale(Math.random()).hex();
+    	// 创建车子对象
+    	car = {};
+    	var geometry = new THREE.BoxGeometry(15, 4, 4);
+    	var material = new Physijs.createMaterial(new THREE.MeshPhongMaterial({
+    		color: color
+    	}), 0.5, 0.5);
+    	var carBody = new Physijs.BoxMesh(geometry, material, 500);
+    	carBody.position.set(5, 11, 5);
+    	scene.add(carBody);
+
+    	var wheelTopLeft = createWheel(new THREE.Vector3(0, 10, 0));
+    	var wheelTopRight = createWheel(new THREE.Vector3(0, 10, 10));
+     	var wheelBottomLeft = createWheel(new THREE.Vector3(10, 10, 0));
+      var wheelBottomRight = createWheel(new THREE.Vector3(10, 10, 10));
+    	
+    	scene.add(wheelTopLeft);
+    	scene.add(wheelTopRight);
+    	scene.add(wheelBottomLeft);
+    	scene.add(wheelBottomRight);
+
+    	// 分别给每个车轮添加约束
+      var tlCons = createWheelConstraint(wheelTopLeft, carBody, new THREE.Vector3(0, 10, 2));
+      scene.addConstraint(tlCons);
+    	var trCons = createWheelConstraint(wheelTopRight, carBody, new THREE.Vector3(0, 10, 8));
+      scene.addConstraint(trCons);
+      var blCons = createWheelConstraint(wheelBottomLeft, carBody, new THREE.Vector3(10, 10, 2));
+      scene.addConstraint(blCons);
+      var brCons = createWheelConstraint(wheelBottomRight, carBody, new THREE.Vector3(10, 10, 8));
+      scene.addConstraint(brCons);
+      // 至此，由于轮子在车身的重力影响下，而会向其他轴倾斜，而使车轮无法托起车身
+
+      // 设置前轮的角度约束
+      trCons.setAngularLowerLimit({x: 0, y: 0.5, z: 0.1});
+      trCons.setAngularUpperLimit({x: 0, y: 0.5, z: 0});
+      tlCons.setAngularLowerLimit({x: 0, y: 0.5, z: 0.1});
+      tlCons.setAngularUpperLimit({x: 0, y: 0.5, z: 0});
+      // 设置后轮的角度约束
+      brCons.setAngularLowerLimit({x: 0, y: 0, z: 0});
+      brCons.setAngularUpperLimit({x: 0, y: 0, z: 0});
+      blCons.setAngularLowerLimit({x: 0, y: 0, z: 0});
+      blCons.setAngularUpperLimit({x: 0, y: 0, z: 0});
+      // 为前轮设置马达
+      tlCons.configureAngularMotor(2, 0.1, 0, -2, 1500);
+      trCons.configureAngularMotor(2, 0.1, 0, -2, 1500);
+      // 启动马达
+      tlCons.enableAngularMotor(2);
+      trCons.enableAngularMotor(2);
+      // 将约束对象全部放入一个对象中，返回外部方便更改
+      car.tlCons = tlCons;
+      car.trCons = trCons;
+      car.blCons = blCons;
+      car.brCons = brCons;
+
+      return car;
+    }
+
+    /**
+     * 给每个车轮与车身之间创建约束
+     * @param  {[type]} wheel    [description]
+     * @param  {[type]} body     [description]
+     * @param  {[type]} position [description]
+     * @return {[type]}          [description]
+     */
+    function createWheelConstraint(wheel, body, position){
+    	var constraint = new Physijs.DOFConstraint(wheel, body, position);
+    	return constraint;
+    }
+
 		/**
 		 * 随机生成多个立方体
 		 */
@@ -616,8 +741,6 @@
 				meshs.push(cube);
 			}
 		}
-
-		
 
 		/**
 		 * 随机生成多个球体
