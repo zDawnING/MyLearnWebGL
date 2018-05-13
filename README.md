@@ -1,32 +1,15 @@
 ## Welcome to My WebGL Learning
 
-You can use the [editor on GitHub](https://github.com/zDawnING/MyLearnWebGL/edit/master/README.md) to maintain and preview the content for your website in Markdown files.
+> 本文档主要用于自我知识点检测和查阅的，非教学向，若以后有需要再斟酌对内容的改造。
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+> 由于本人是WebGL初学者，文档中的例子基本上的都参照[WebGL Programming Guide](https://www.amazon.com/WebGL-Programming-Guide-Interactive-Graphics/dp/0321902920?tag=realtimerenderin&pldnSite=1) 上面的例子进行样式上的模仿练习，主体框架代码是本人自己组织的。如果有侵权问题，请提交Issue提醒我删除或更改。（If there is any infringement, please submit it to issue. I will delete or change it.）
 
-### Markdown
+> 如果有图形学学者想了解WebGL, 强烈推荐看WebGL Programming Guide一书；如果是前端开发者，建议先了解图形学的相关基本知识，再看这边书会有更深一层的认识。本人在看这边书之前有学过过OpenGL，因此该书可以带领我快速入门WebGL, 毕竟万变不离其宗。但是如果是想深入了解WebGL, 个人并不推荐，该书的内容深度不够，
+推荐看[Professional WebGL Programming] (https://www.amazon.com/Professional-WebGL-Programming-Developing-Graphics/dp/1119968860/)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+> 文档中会有摘录书中的重要内容, 摘录处会做相应的标注。
 
-```markdown
-Syntax highlighted code block
 
-# Header 1
-## Header 2
-### Header 3
-
-- Bulleted
-- List
-
-1. Numbered
-2. List
-
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
-```
-
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
 
 ### Jekyll Themes
 
