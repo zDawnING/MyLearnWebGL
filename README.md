@@ -111,7 +111,10 @@ shader初始化流程（基本上与OpenGL一致）：
 ![coordinate systems](/docs/img/coordinate_systems.png)
 
 把上面的坐标转换组合在一起，则形成了图形学里面经常提到的MVP矩阵
-`gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * a_Position; (顶点着色器中)`，运算顺序是从右往左的。顶点着色器在最后会自动进行透视除法和裁剪。
+
+`gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * a_Position; (顶点着色器中)`
+
+> 运算顺序是从右往左的，顶点着色器在最后会自动进行透视除法和裁剪。
 
 
 
