@@ -1,13 +1,13 @@
 ## Welcome to My WebGL Learning
 
-> 本文档主要用于`自我知识点检测`和`查阅`的，非教学向，并且由于篇幅有限，内容根据我自身情况进行概括总结。
+> 本文档主要用于`自我知识点检测`和`查阅`的，非教学向，亦可当做是《WebGL Programming Guide》的读书笔记, 并且由于篇幅有限，内容根据我自身情况进行概括总结。
 
 > 由于本人是WebGL初学者，项目中的章节例子基本上的都参照[WebGL Programming Guide](https://www.amazon.com/WebGL-Programming-Guide-Interactive-Graphics/dp/0321902920?tag=realtimerenderin&pldnSite=1) 上面的例子进行模仿练习的，主体框架代码则是本人自己组织。如果有侵权问题，请提交Issue提醒我删除或更改。（If there is any infringement, please submit it to issue. I will delete or change it.）
 
 > 如果有图形学学者想了解WebGL, 强烈推荐看WebGL Programming Guide一书；如果是前端开发者，建议先了解图形学的相关基本知识，再看这边书会有更深一层的认识。本人在看这边书之前有学过过OpenGL，因此该书可以带领我快速入门WebGL, 毕竟万变不离其宗。但是如果是想深入了解WebGL, 个人并不推荐，该书的内容深度不够，
 推荐看[Professional WebGL Programming](https://www.amazon.com/Professional-WebGL-Programming-Developing-Graphics/dp/1119968860)
 
-> 本人阅读的是英文版，因此会摘录书中的一些图文内容用于参考，有引用的地方都会加以标注，另其内容不会做详细翻译解释。若文档中有哪些错误，欢迎大家提交Issue指正。
+> 本人阅读的是英文版，因此会摘录书中的一些图文内容用于参考，其内容不会做详细翻译解释。若文档中有哪些错误，欢迎大家提交Issue指正。
 
 ### WebGL开发的基本流程
 
@@ -115,6 +115,80 @@ shader初始化流程（基本上与OpenGL一致）：
 `gl_Position = ProjectionMatrix * ViewMatrix * ModelMatrix * a_Position; (顶点着色器中)`
 
 > 运算顺序是从右往左的，顶点着色器在最后会自动进行透视除法和裁剪。
+
+这里顺便介绍一下比较有用的坐标转换 
+
+<b>页面canvas的坐标与webgl坐标的转换</b>，下面是一个在canvas中相应鼠标点击然后在webgl坐标系统上绘制相应的点的例子
+
+示例代码：
+```javascript
+canvas.onmousedown = function(e){
+    mouseClick(e, gl, a_Position, u_Color);
+}
+
+var g_points = []; // 鼠标点击位置数组
+var g_colors = []; // 点颜色数组
+function mouseClick(e, gl, a_Position, u_Color){
+    var x = e.clientX;
+    var y = e.clientY;
+    // 获取当前选中元素的位置数据集合
+    var rect = e.target.getBoundingClientRect();
+    
+    // 求出x、y在webgl坐标系统中的坐标
+    x = ((x - rect.left) - canvas.width/2) / (canvas.width/2);
+    y = (canvas.height/2 - (y - rect.top)) / (canvas.height/2);
+    
+    // 由此可得数组中一个点的坐标步距为2
+    // 创建为2维数组，提供可读性
+    g_points.push([x, y]);
+    g_colors.push([Math.abs(x), Math.abs(y), 0.0, 1.0]);
+
+    gl.clear(gl.COLOR_BUFFER_BIT); // 如果不清空canvas，颜色缓冲区则会重置颜色值为(0.0,0.0,0.0,0.0),即透明
+
+    var len = g_points.length;
+    for (var i = 0; i < len; i++) {
+        // gl.vertexAttrib3f(a_Position, g_points[i], g_points[i+1], 0.0);
+        var xy = g_points[i]; 
+        gl.vertexAttrib3f(a_Position, xy[0], xy[1], 0.0);
+        var rgba = g_colors[i];
+        gl.uniform4f(u_Color, rgba[0], rgba[1], rgba[2], rgba[3]);
+        gl.drawArrays(gl.POINTS, 0, 1);
+    }
+}
+
+```
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter02/click_point_c.html)
+
+### 使用WebGL中的缓冲区对象
+
+WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d坐标转换成屏幕上显示的2d像素，
+3d坐标转2d坐标这个过程称为`图形渲染管线（Graphics Pipeline）`，实质是将一堆原始图形数据途径管线，然后经过各种各样的处理最后展示至屏幕。
+图形管线主要分为两部分工作：1.将3d坐标转换2d坐标；2.把2d坐标转换成实际有颜色的像素
+
+> 2D坐标和像素也是不同的，2D坐标精确表示一个点在2D空间中的位置，而2D像素是这个点的近似值，2D像素受到你的屏幕/窗口分辨率的限制。
+
+而缓冲区对象则是WebGL系统中的的一块存储区，可以在缓冲区对象中保存想要绘制的所有顶点数据，它会在显存中储存大量顶点。使用这些缓冲对象的好处是我们可以一次性的发送一大批数据到显卡上，而不是每个顶点发送一次。从CPU把数据发送到显卡相对较慢，所以只要可能我们都要尝试尽量一次性发送尽可能多的数据。当数据发送至显卡的内存中后，顶点着色器几乎能立即访问顶点，这是个非常快的过程。
+
+使用缓冲区对象给顶点着色器传入顶点数据，一般遵循以下步骤（与纹理对象，帧缓冲对象类似）：
+* 创建缓冲区对象 - gl.createBuffer()
+* 绑定缓冲区对象 - gl.bindBuffer()
+* 将顶点数据传入缓冲区对象 - gl.bufferData()
+* 分配attribute变量给缓冲区对象 - gl.vertexAttribPointer()
+* 启用attribute变量 - gl.enableVertexAttribArray()
+
+过程图：
+![buffers send to vs](/docs/img/QQ20180514-164711@2x.png)
+
+为了优化webgl同时处理大量同类型数据（如顶点和颜色数据）的性能，则引入了一种特殊数组`类型化数组（Typed Array）`, 因为这种数组的类型是预先已知的，因此可以进行高效处理。与普通js数组不同，不支持push和pop方法，并不能使用`[]`, 创建新的N个元素的空数组`new Float32Array(N)`,使用前请参考下图。
+![typed array](/docs/img/QQ20180514-171224@2x.png)
+![typed array func](/docs/img/QQ20180514-171315@2x.png)
+
+上面步骤中的每个方法的细则这里就不一一叙述，具体请参考原书。
+这里直接放一张顶点着色器执行过程中的缓冲区数据是如何传输的
+![buffer pass vs](/docs/img/QQ20180514-172628@2x.png)
+
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter03/quad.html)
+
 
 
 
