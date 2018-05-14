@@ -116,6 +116,47 @@ shader初始化流程（基本上与OpenGL一致）：
 
 > 运算顺序是从右往左的，顶点着色器在最后会自动进行透视除法和裁剪。
 
+这里顺便介绍一下比较有用的坐标转换 
+
+<b>页面canvas的坐标与webgl坐标的转换</b>，下面是一个在canvas中相应鼠标点击然后在webgl坐标系统上绘制相应的点的例子
+
+示例代码：
+```javascript
+canvas.onmousedown = function(e){
+    mouseClick(e, gl, a_Position, u_Color);
+}
+
+var g_points = []; // 鼠标点击位置数组
+var g_colors = []; // 点颜色数组
+function mouseClick(e, gl, a_Position, u_Color){
+    var x = e.clientX;
+    var y = e.clientY;
+    // 获取当前选中元素的位置数据集合
+    var rect = e.target.getBoundingClientRect();
+    
+    // 求出x、y在webgl坐标系统中的坐标
+    x = ((x - rect.left) - canvas.width/2) / (canvas.width/2);
+    y = (canvas.height/2 - (y - rect.top)) / (canvas.height/2);
+    
+    // 由此可得数组中一个点的坐标步距为2
+    // 创建为2维数组，提供可读性
+    g_points.push([x, y]);
+    g_colors.push([Math.abs(x), Math.abs(y), 0.0, 1.0]);
+
+    gl.clear(gl.COLOR_BUFFER_BIT); // 如果不清空canvas，颜色缓冲区则会重置颜色值为(0.0,0.0,0.0,0.0),即透明
+
+    var len = g_points.length;
+    for (var i = 0; i < len; i++) {
+        // gl.vertexAttrib3f(a_Position, g_points[i], g_points[i+1], 0.0);
+        var xy = g_points[i]; 
+        gl.vertexAttrib3f(a_Position, xy[0], xy[1], 0.0);
+        var rgba = g_colors[i];
+        gl.uniform4f(u_Color, rgba[0], rgba[1], rgba[2], rgba[3]);
+        gl.drawArrays(gl.POINTS, 0, 1);
+    }
+}
+
+```
 
 
 
