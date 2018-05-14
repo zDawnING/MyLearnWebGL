@@ -11,12 +11,13 @@
 
 ### WebGL开发的基本流程
 
-1. 获取DOM中的canvas元素，向该元素获取WebGL绘图上下文(开发时可开启调试模式)
+* 获取DOM中的canvas元素，向该元素获取WebGL绘图上下文(开发时可开启调试模式)
 
-2. 如有应用shader，则需要加载vertexShader和fragmentShader(本项目的示例中采用加载文件中的字符串的形式)
+* 如有应用shader，则需要加载vertexShader和fragmentShader(本项目的示例中采用加载文件中的字符串的形式)
 
-> 虽然有效分离了代码，但是留下了需要加载文件的弊端（页面加载时间长），经过Threejs框架的参考，可仿照该框架放置shader的方式，【待引用】。
-    
+> 虽然有效分离了代码，但是留下了需要加载文件的弊端（页面加载时间长），经过Threejs框架的参考，可仿照该框架放置shader的方式，【待引用】
+
+
 shader初始化流程（基本上与OpenGL一致）：
     
 ```javascript
@@ -72,11 +73,14 @@ shader初始化流程（基本上与OpenGL一致）：
   gl.uniformMatrix4fv(u_MVPMatrix, false, mvpMatrix.elements);
 ```
   
-3. 设置canvas背景色
+* 设置canvas背景色 `gl.clearColor(r, g, b, a)`, 方法继承自OpenGL
 
-4. 清除canvas
+* 清除canvas `gl.clear(buffer)`, 实质清空各种缓冲区, 方法继承自OpenGL, 顶替多种的基本缓冲区; 若没有指定背景色，则参考：
+![gl.clear() func](/docs/img/QQ20180514-102405@2x.png)
 
-5. 绘图
+* 绘制操作 `gl.drawArray(mode, first, count)`, 该方法非常强大，可根据不同的模式和顶点数来指定绘制各种各样的图形
+
+
   
 
 
