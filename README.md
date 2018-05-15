@@ -4,7 +4,7 @@
 
 > 由于本人是WebGL初学者，项目中的章节例子基本上的都参照[WebGL Programming Guide](https://www.amazon.com/WebGL-Programming-Guide-Interactive-Graphics/dp/0321902920?tag=realtimerenderin&pldnSite=1) 上面的例子进行模仿练习的，主体框架代码则是本人自己组织。如果有侵权问题，请提交Issue提醒我删除或更改。（If there is any infringement, please submit it to issue. I will delete or change it.）
 
-> 如果有图形学学者想了解WebGL, 强烈推荐看WebGL Programming Guide一书；如果是前端开发者，建议先了解图形学的相关基本知识，再看这边书会有更深一层的认识。本人在看这边书之前有学过过OpenGL，因此该书可以带领我快速入门WebGL, 毕竟万变不离其宗。但是如果是想深入了解WebGL, 个人并不推荐，该书的内容深度不够，
+> 如果有图形学学者想了解WebGL, 强烈推荐看WebGL Programming Guide一书；如果是前端开发者，建议先了解图形学的相关基本知识，再看这边书会有更深一层的认识。本人在看这边书之前有学过OpenGL，因此该书可以带领我快速入门WebGL, 毕竟万变不离其宗。但是如果是想深入了解WebGL, 个人并不推荐，该书的内容深度不够，
 推荐看[Professional WebGL Programming](https://www.amazon.com/Professional-WebGL-Programming-Developing-Graphics/dp/1119968860)
 
 > 本人阅读的是英文版，因此会摘录书中的一些图文内容用于参考，其内容不会做详细翻译解释。若文档中有哪些错误，欢迎大家提交Issue指正。
@@ -196,8 +196,9 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 ### 几何形状的装配和光栅化
 
 在顶点着色器和片元着色器之间，有两个进程：
-1.图形装配；将顶点坐标装配成几何图形，又称图元(primitives)，图形类别由gl.drawArray的参数mode决定
-2.光栅化；将装配好的几何图形转换成片元块
+
+1. 图形装配；将顶点坐标装配成几何图形，又称图元(primitives)，图形类别由gl.drawArray的参数mode决定
+2. 光栅化；将装配好的几何图形转换成片元块
 
 大概流程是：当顶点着色器获取到缓冲区中的坐标时，坐标数据经过处理后赋值给gl_Position, 此时已放入图形装配区；接下来继续执行顶点着色器，直至将所有的顶点数据传完，则开始根据mode参数类型来装配图形，然后通过光栅化把图形转变成图元，即可得到想要的像素块。
 
@@ -239,6 +240,20 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 
 > 需要对纹理图像进行反转，原因是webgl中的纹理坐标的t轴方向与png,bmp,jpg等格式的图片坐标系统y轴方向是相反的，另外一种方法也可以在着色器中手动反转t轴坐标，但这样维护性较差，有时出错时很难判别是手误或是其他原因。
 
+> 系统支持的纹理单元个数取决于硬件和浏览器的webgl内部实现，默认情况下，至少支持8个纹理单元，表示形态：`gl.TEXTURE0~7`
+
+> webgl支付的纹理类型有两种：1.`二维纹理(gl.TEXTURE_2D)`, 2.`立方体纹理(gl.TEXTURE_CUBE_MAP)`
+
+> 配置纹理对象参数和填充模式的方案：
+如下图：![texture param](/docs/img/QQ20180515-071103@2x.png)
+另外还有`mipmap`的纹理配置, 书中说可以直接查阅opengl的programming guide, 据我所知mipmap可是个好东西，它不仅仅是为了提高性能，而且能提高纹理质量减少失真情况。具体请查阅相关资料。
+
+> 设置纹理图像参数时，需要指定纹素的格式，这个跟图片的格式有关：如jpg、bmp则指定为gl.RGB,PNG则是gl.RGBA,而类似灰度图等则用gl.LUMINANCE(L,L,L,1L:luminamce)或者gl.LUMINANCE_ALPHA(L,L,L,a).(luminance被称为发光率，指一个表面的光亮程度，通常使用物体表面r,g,b颜色分量值的加权平均来计算)
+
+> 另外还要纹理数据类型，这里涉及很多图像数据压缩相关的，暂时未研究过，后面有需要再找资料，读懂后再提供参考资料地址。
+
+> 传递纹理坐标的时候，一定注意从顶点着色器的varying变量再传递给片元着色器，如上文所说，其间需要有内插值。
+
 示例代码：
 ```javascript
 // 创建纹理对象
@@ -267,14 +282,14 @@ function loadTexture(gl, n, texture, u_Sampler, image){
     // 测试其他的纹理填充模式
     // 垂直方向镜像重复填充
     // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
-    // // 水平方向去取边缘值作为填充值
-    // 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    // 水平方向去取边缘值作为填充值
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 
     // 设置纹理图像参数
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 
-    // 将纹理单元设置到采样器对象
-    gl.uniform1i(u_Sampler, 0);
+    // 将纹理单元设置到采样器对象，纹理单元编号为0
+    gl.uniform1i(u_Sampler, 0);
 
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
@@ -282,18 +297,17 @@ function loadTexture(gl, n, texture, u_Sampler, image){
 
 ```
 
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter05/texture_quad.html)
+
+<b>多重纹理的使用：</b>
+* 激活多个纹理单元
+* 片元着色器中创建多个采用器，传递给采用器时要使用对应的纹理编号
+* 确保多个纹理单元已经准备完成后，在片元着色器中提取各个纹素的颜色将它们相乘即可
 
 
+### GLSL ES的一些常见运用
 
-
-
-
-
-
-
-
-
-
+GLSL ES是GLSL的简化版，因此很多地方几乎没有太大的变化，由于GLSL ES的语法在使用上非常灵活，特别是不同类型的相互运算，另外其内置函数也不少，因此这里罗列一些容易混淆或者遗忘的知识点，用于查阅和反复复习。
 
 
 
