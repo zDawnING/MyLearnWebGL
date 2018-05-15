@@ -547,6 +547,7 @@ viewMatrix.setLookAt(eyeX, eyeY, eyeZ, atX, atY, atZ, upX, upY, upZ)
 ### 可视空间
 
 有两类常用可视空间：1.`正投影(Orthographic Projection)`, 2.`透视投影(Perspective Projection)`
+
 两种空间由前后两个矩形面决定：1.`近裁剪面(near clipping plane)`, 2.`远裁剪面(far clipping plane)`
 
 ```javascript
