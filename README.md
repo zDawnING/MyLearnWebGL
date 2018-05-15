@@ -4,10 +4,10 @@
 
 > 由于本人是WebGL初学者，项目中的章节例子基本上的都参照[WebGL Programming Guide](https://www.amazon.com/WebGL-Programming-Guide-Interactive-Graphics/dp/0321902920?tag=realtimerenderin&pldnSite=1) 上面的例子进行模仿练习的，主体框架代码则是本人自己组织。如果有侵权问题，请提交Issue提醒我删除或更改。（If there is any infringement, please submit it to issue. I will delete or change it.）
 
-> 如果有图形学学者想了解WebGL, 强烈推荐看WebGL Programming Guide一书；如果是前端开发者，建议先了解图形学的相关基本知识，再看这边书会有更深一层的认识。本人在看这边书之前有学过过OpenGL，因此该书可以带领我快速入门WebGL, 毕竟万变不离其宗。但是如果是想深入了解WebGL, 个人并不推荐，该书的内容深度不够，
+> 如果有图形学学者想了解WebGL, 强烈推荐看WebGL Programming Guide一书；如果是前端开发者，建议先了解图形学的相关基本知识，再看这边书会有更深一层的认识。本人在看这边书之前有学过OpenGL，因此该书可以带领我快速入门WebGL, 毕竟万变不离其宗。但是如果是想深入了解WebGL, 个人并不推荐，该书的内容深度不够，
 推荐看[Professional WebGL Programming](https://www.amazon.com/Professional-WebGL-Programming-Developing-Graphics/dp/1119968860)
 
-> 本人阅读的是英文版，因此会摘录书中的一些图文内容用于参考，其内容不会做详细翻译解释。若文档中有哪些错误，欢迎大家提交Issue指正。
+> 本人阅读的是英文版，因此会摘录书中的一些图文内容用于参考，其内容不会做详细翻译解释。另外文档写完后有对照过中文版进行添加和修改，若文档中有哪些错误，欢迎大家提交Issue指正。
 
 ### WebGL开发的基本流程
 
@@ -196,8 +196,9 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 ### 几何形状的装配和光栅化
 
 在顶点着色器和片元着色器之间，有两个进程：
-1.图形装配；将顶点坐标装配成几何图形，又称图元(primitives)，图形类别由gl.drawArray的参数mode决定
-2.光栅化；将装配好的几何图形转换成片元块
+
+1. 图形装配；将顶点坐标装配成几何图形，又称图元(primitives)，图形类别由gl.drawArray的参数mode决定
+2. 光栅化；将装配好的几何图形转换成片元块
 
 大概流程是：当顶点着色器获取到缓冲区中的坐标时，坐标数据经过处理后赋值给gl_Position, 此时已放入图形装配区；接下来继续执行顶点着色器，直至将所有的顶点数据传完，则开始根据mode参数类型来装配图形，然后通过光栅化把图形转变成图元，即可得到想要的像素块。
 
@@ -239,6 +240,20 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 
 > 需要对纹理图像进行反转，原因是webgl中的纹理坐标的t轴方向与png,bmp,jpg等格式的图片坐标系统y轴方向是相反的，另外一种方法也可以在着色器中手动反转t轴坐标，但这样维护性较差，有时出错时很难判别是手误或是其他原因。
 
+> 系统支持的纹理单元个数取决于硬件和浏览器的webgl内部实现，默认情况下，至少支持8个纹理单元，表示形态：`gl.TEXTURE0~7`
+
+> webgl支付的纹理类型有两种：1.`二维纹理(gl.TEXTURE_2D)`, 2.`立方体纹理(gl.TEXTURE_CUBE_MAP)`
+
+> 配置纹理对象参数和填充模式的方案：
+如下图：![texture param](/docs/img/QQ20180515-071103@2x.png)
+另外还有`mipmap`的纹理配置, 书中说可以直接查阅opengl的programming guide, 据我所知mipmap可是个好东西，它不仅仅是为了提高性能，而且能提高纹理质量减少失真情况。具体请查阅相关资料。
+
+> 设置纹理图像参数时，需要指定纹素的格式，这个跟图片的格式有关：如jpg、bmp则指定为gl.RGB,PNG则是gl.RGBA,而类似灰度图等则用gl.LUMINANCE(L,L,L,1L:luminamce)或者gl.LUMINANCE_ALPHA(L,L,L,a).(luminance被称为发光率，指一个表面的光亮程度，通常使用物体表面r,g,b颜色分量值的加权平均来计算)
+
+> 另外还要纹理数据类型，这里涉及很多图像数据压缩相关的，暂时未研究过，后面有需要再找资料，读懂后再提供参考资料地址。
+
+> 传递纹理坐标的时候，一定注意从顶点着色器的varying变量再传递给片元着色器，如上文所说，其间需要有内插值。
+
 示例代码：
 ```javascript
 // 创建纹理对象
@@ -267,14 +282,14 @@ function loadTexture(gl, n, texture, u_Sampler, image){
     // 测试其他的纹理填充模式
     // 垂直方向镜像重复填充
     // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);
-    // // 水平方向去取边缘值作为填充值
-    // 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    // 水平方向去取边缘值作为填充值
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 
     // 设置纹理图像参数
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);
 
-    // 将纹理单元设置到采样器对象
-    gl.uniform1i(u_Sampler, 0);
+    // 将纹理单元设置到采样器对象，纹理单元编号为0
+    gl.uniform1i(u_Sampler, 0);
 
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, n);
@@ -282,20 +297,210 @@ function loadTexture(gl, n, texture, u_Sampler, image){
 
 ```
 
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter05/texture_quad.html)
+
+<b>多重纹理的使用：</b>
+* 激活多个纹理单元
+* 片元着色器中创建多个采用器，传递给采用器时要使用对应的纹理编号
+* 确保多个纹理单元已经准备完成后，在片元着色器中提取各个纹素的颜色将它们相乘即可
 
 
+### GLSL ES的一些常见运用
 
+GLSL ES是GLSL的简化版，因此很多地方几乎没有太大的变化，由于GLSL ES的语法在使用上非常灵活，特别是不同类型的相互运算，另外其内置函数也不少，因此这里罗列一些容易混淆或者遗忘的知识点，用于查阅和反复复习。
 
+<b>矢量和矩阵类型</b>
+![vec&mat type](/docs/img/QQ20180515-103949@2x.png)
 
+<b>矢量构造函数的应用</b>
+```c
+vec3 v3 = vec3(1.0, 2.0, 3.0);
+vec2 v2 = vec2(v3); // (1.0, 2.0),将vec3变量放置与vec2,多出的分量会被丢弃
+vec4 v4 = vec4(1.0); // (1.0, 1.0, 1.0, 1.0), 构造函数会自动将这个参数值赋给新建矢量的所有元素
+// 这里的重要注意点是: 当构造函数接收超出1个参数的时候，如果参数个数少于新建矢量需要的元素个数时，则会报错;这对于矩阵来说也是一样
+// 多个矢量组合（多则会丢弃，少则会报错）
+vec4 v4New = vec4(v2, v4); // (1.0, 2.0, 1.0, 1.0)
+```
+<b>矩阵构造函数的应用</b>
+```c
+vec2 v2a = vec2(1.0, 2.0);
+vec2 v2b = vec2(3.0, 4.0);
+mat2 m2a = mat2(v2a, v2b); // 1.0 3.0
+                           // 2.0 4.0
+// 与上面等价
+vec4 v4a = (1.0, 2.0, 3.0, 4.0);
+mat2 m2a = mat2(v4a);
+// 与上面等价
+mat2 m2a = mat2(1.0, 2.0, v2b);
 
+// 单位矩阵
+mat4 m4 = mat4(1.0)
+```
 
+> 这里要说明一点，向矩阵构造函数中传入矩阵的每一个元素的顺序是列主序的，与上文中所使用的类型化数组一样，都是按列主序存储在数组中的（对OpenGL同样），可参考下图：![column major](/docs/img/QQ20180515-103559@2x.png)
 
+<b>访问元素</b>
+![vec elements](/docs/img/QQ20180515-112343@2x.png)
 
+<b>分量名的应用</b>
+```c
+vec3 v3 = vec3(1.0, 2.0, 3.0); 
+vec2 v2a = v3.xy; //(1.0, 2.0); 
+vec2 v2b = v3.zy; //(3.0, 2.0);
+vec2 v2c = v3.st; //(1.0, 2.0);
+// 以上可省略、跳过、逆序来读取分量
+// 注意：不同的类别的分量不能混在一起读取
+```
+`[]`<b>运算符</b>
+```c
+// 使用[]运算符对矩阵的读取也是列主序的
+mat2 m2 = mat2(1.0, 2.0, 3.0, 4.0);// 1.0 3.0
+                                   // 2.0 4.0
+vec2 v2 = m2[0]; // (1.0, 2.0)，取出第一列的数据
+// 连续两个[]运算符则可以访问某列的某个元素
+float a = m2[0][1]; // 2.0
+// 与上面等价
+float a = m2[0].y;
+// 另外一点是，如果要使用变量来代替索引值，则这个变量必须是常量索引值
+const int index = 1;
+vec2 v2 = m2[1]; // (3.0, 4.0)
+```
+> 注释中提到的常量索引值的定义是：1.整型;2.const修饰的全局或局部变量(不包括函数参数);3.循环索引
 
+<b>矢量运算</b>
+```c
+vec3 v3 = (1.0, 2.0, 3.0);
+float f = 5.0;
+vec3 v3a = v3 + f = (6.0, 7.0, 8.0); // 矢量的分量与浮点数运算
+// 矢量与矢量的运算
+```
+<b>矩阵运算</b>
+```c
+// 矩阵与浮点数的运算，亦是分量间运算
+// 矩阵右乘矢量
+vec3 v3 = (1.0, 2.0, 3.0);
+mat3 m3 = (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0);
+vec3 v3New = m3 * v3; // 矩阵右乘矢量（列向量）的结果依然是矢量，下面展示过程：
+// v3New.x = m3[0].x * v3.x + m3[1].x * v3.y + m3[2].x * v3.z;  1.0*1.0+4.0*2.0+7.0*3.0=29
+// v3New.y = m3[0].y * v3.x + m3[1].y * v3.y + m3[2].y * v3.z;  2.0*1.0+5.0*2.0+8.0*3.0=36
+// v3New.z = m3[0].z * v3.x + m3[1].z * v3.y + m3[2].z * v3.z;  3.0*1.0+6.0*2.0+9.0*3.0=42
+// 矩阵左乘矢量（这里并非是数学上的那个无定义的计算，实质是此时的矢量已经转变成了行向量, 行向量左乘矩阵结果依然是行向量）
+vec3 v3New = v3 * m3; // 下面展示过程：
+// v3New.x = m3[0].x * v3.x + m3[0].y * v3.y + m3[0].z * v3.z;  1.0*1.0+2.0*2.0+3.0*3.0=13
+// v3New.y = m3[1].x * v3.x + m3[1].y * v3.y + m3[1].z * v3.z;  4.0*1.0+5.0*2.0+6.0*3.0=32
+// v3New.z = m3[2].x * v3.x + m3[2].y * v3.y + m3[2].z * v3.z;  7.0*1.0+8.0*2.0+9.0*3.0=50
+// 由上可以得出矩阵右乘矩阵和左乘矩阵的结果是不相等的
+// 矩阵与矩阵相乘（一般来说都是方阵与方阵相乘，另外在乘法有意义的情况下，任意矩阵与方阵相乘的结果，不然哪边乘，都得到原矩阵大小的矩阵）
+// 为了简便展示过程，假设存在m3a,m3b两个方阵
+mat3 m3 = m3a * m3b; // 下面展示过程：
+// m3[0].x = m3a[0].x * m3b[0].x + m3a[1].x * m3b[0].y + m3a[2].x + m3b[0].z;
+// .... 如此类推
+```
+<b>结构体</b>
+```c
+// 定义结构体类型light
+struct light {
+    vec4 color;
+    vec3 position;
+} 
+// 直接声明light类型变量
+light spotLight, pointLight;
+// 可使用结构体的构造函数赋值
+spotLight = light(vec4(1.0), vec3(1.0));
+// 可使用比较运算符==和赋值运算符=
+if(spotLight == pointLight) // 当且仅当对应的所有的成员都相等才是true
+// 这里要注意：赋值和比较运算符不使用与含有数组与纹理成员的结构体
+```
+<b>数组</b>
+```c
+// 声明数组直接在类型变量后加[]和个数即可, 数目需要变量控制需要const来声明, 另外GLSL ES仅支持一维数组
+float fArr[3];
+vec3 v3Arr[3];
+// 初始化数组不能一次性初始化，仅能显式地对每一个元素处理
+```
+<b>取样器</b>
+取样器有两种：`sampler2D`和`samplerCube`
 
+<b>条件语句</b>
+这里特别指出：discard. 它只能使用片元着色器中，表示放弃当前片元直接处理下一个片元。
+这里有个示例可以了解它的使用
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/rounded_point.html)
 
+<b>函数</b>
+函数的用法类似于c语言，一个重要的不同点是：不能再函数内部调用它本身，即递归调用是不允许的，这个限制是方便编译器对函数内联展开。
+另外一点是关于函数的`规范声明`,如果函数定义在其调用之后，则必须在调用前先声明该函数的规范，即预先告诉函数的参数，参数类型，返回值等。
+GLSL中可以为函数指定`参数限定字`,以控制参数行为。可分为3种：
+1. 传递给函数
+2. 将从函数中回传，即在函数中被处理后并传出的
+3. 上面两者都有
 
+下图为参数限定词的说明和举例
+![glsl func qualifiers](/docs/img/QQ20180515-180830@2x.png)
 
+另附 内置函数表：(个人觉得这里中文版比较合适)
+![glsl built-in func](/docs/img/QQ20180515-181435@2x.png)
+
+<b>存储限定字</b>
+`const`常量是不能重新赋值的
+`attribute`变量仅存在顶点着色器中，在该着色器中是全局变量，表示`逐顶点`数据。类型只能是float,vec2~4,mat2~4
+`uniform`变量可以用于顶点着色器和片元着色器，并且是两个着色器共享的只读全局变量，可以是除了数组或结构体之外的的任意类型
+`varying`变量可以用于顶点着色器和片元着色器, 用于两个着色器传递数据，类型只能是float,vec2~4,mat2~4, 数值在内部会被内插，故数据类型需要限制
+
+> attribute，uniform和varying的最大数目与设备有关，参照下图：
+![storage qualifiers](/docs/img/QQ20180515-194418@2x.png)
+
+<b>精度限定字</b>
+可以指定每种数据拥有的精度(the number of bits),设置高精度则需要更大的性能开销（更大的内存和更多的计算时间），因此可以对性能和大小方面进行细化控制。
+一般情况下设置适中即可：
+```c
+#ifdef GL_ES
+precision mediump float;
+#endif
+```
+两种着色器中大多的数据类型都配置了默认精度，只有片元着色器的float类型没有配置，因此要向上面的示例一样配置
+数据类型中共有三种精度（highp, mediump, lowp）,参考下图
+![precision qualifiers](/docs/img/QQ20180515-200750@2x.png)
+
+<b>预处理指令</b>
+在编译前对代码进行预处理，以#开始
+```c
+// 第一种
+#if 条件表达式
+// 表达式为true
+#endif
+// 第二种
+#ifdef 某宏
+// 定义了宏
+#endif
+// 第三种
+#ifndef 某宏
+// 没有定义宏
+#endif
+
+// define指令进行宏定义
+#define 宏名 宏内容
+// 解除宏定义
+#undef 宏名
+
+#version int (可以指定着色器的GLSL ES使用的版本，必须在最顶部)
+
+// 示例1：
+#define version 1.0
+#if version == 1.0
+// true
+#else
+// false
+#endif
+
+// 示例2：(使用宏来规定精度使用)
+#ifdef GL_ES
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+#endif
+```
 
 
 
