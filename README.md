@@ -16,10 +16,26 @@
 * 如有应用shader，则需要加载vertexShader和fragmentShader(本项目的示例中采用加载文件中的字符串的形式)
 
 > 虽然有效分离了代码，但是留下了需要加载文件的弊端（页面加载时间长），经过Threejs框架的参考，可仿照该框架放置shader的方式，【待引用】
+  
+* 设置canvas背景色 `gl.clearColor(r, g, b, a)`, 方法继承自OpenGL
 
+* 清除canvas `gl.clear(buffer)`, 实质清空各种缓冲区, 方法继承自OpenGL, 顶替多种的基本缓冲区; 若没有指定背景色，则参考：
+![gl.clear() func](/docs/img/QQ20180514-102405@2x.png)
+
+* 绘制操作 `gl.drawArray(mode, first, count)`, 该方法非常强大，可根据不同的模式和顶点数来指定绘制各种各样的图形
+
+<b>下面补充完成创建和初始化shader的整个流程</b>
 
 shader初始化流程（基本上与OpenGL一致）：
-    
+1. 创建shader
+2. 给shader对象设置源码
+3. 编译shader
+4. 创建shader程序对象
+5. 绑定编译完成的shader对象至程序
+6. 链接程序对象
+7. 使用程序对象
+
+示例代码：
 ```javascript
   // 根据shader类型创建shader对象
   var shader = gl.createShader(type);
@@ -72,13 +88,6 @@ shader初始化流程（基本上与OpenGL一致）：
   var mvpMatrix = new Matrix4();
   gl.uniformMatrix4fv(u_MVPMatrix, false, mvpMatrix.elements);
 ```
-  
-* 设置canvas背景色 `gl.clearColor(r, g, b, a)`, 方法继承自OpenGL
-
-* 清除canvas `gl.clear(buffer)`, 实质清空各种缓冲区, 方法继承自OpenGL, 顶替多种的基本缓冲区; 若没有指定背景色，则参考：
-![gl.clear() func](/docs/img/QQ20180514-102405@2x.png)
-
-* 绘制操作 `gl.drawArray(mode, first, count)`, 该方法非常强大，可根据不同的模式和顶点数来指定绘制各种各样的图形
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter02/point.html)
 
@@ -514,6 +523,37 @@ precision highp float;
 precision mediump float;
 #endif
 #endif
+```
+
+### 视点与视线
+
+这里理清两个概念：1.相机所处的位置则为`视点`；2.从相机出发指向某个方向的射线则为`视线`
+
+为准确定义相机的所处的状态，需要三个重要的基础信息：
+1. 相机的`上方向(up direction)`
+2. `视点`
+3. `观察目标点`，只有知道视点和观察目标点后，才能求出视线向量
+
+因此可以利用上面三个矢量创建一个视图矩阵(viewMatrix) 
+```javascript
+// 每三个参数分别是视点，观察目标点，上方向
+viewMatrix.setLookAt(eyeX, eyeY, eyeZ, atX, atY, atZ, upX, upY, upZ)
+```
+> 这里还有一个很重要的知识点（认知）：因为移动视点与移动被观察的对象时等效的，因此改变观察者状态与对整个场景进行变换，本质是一样的。为了更好地解释这个知识点，下面罗列几个公式推论：
+1. 如果想变换物体，则需要将变换矩阵与物体的原始顶点相乘：`变换后的顶点坐标 = 变换矩阵 * 原始坐标`，物体多个组合变换而成的矩阵又称`模型矩阵`
+2. 从变换的角度上看，视图矩阵乘以顶点坐标把顶点变换至合适的位置，使相机在不移动的情况下观察新位置的顶点，与从视觉的角度上来看，相机移动至视图矩阵所描述的视点上观察原始顶点的效果是一样的。因此可得：`视点上看过去的新坐标 = 视图矩阵 * 变换后的顶点坐标`
+3. 由上可得：`视点上看过去的新坐标 = 视图矩阵 * 模型矩阵 * 原始坐标`, 则MV矩阵（又称模型视图矩阵）由此而来
+
+### 可视空间
+
+有两类常用可视空间：1.`正投影(Orthographic Projection)`, 2.`透视投影(Perspective Projection)`
+两种空间由前后两个矩形面决定：1.`近裁剪面(near clipping plane)`, 2.`远裁剪面(far clipping plane)`
+
+```javascript
+// 创建正投影矩阵，两两参数都不要求相等
+viewMatrix.setOrtho(left, right, bottom, top, near, far);
+// 创建透视投影矩阵，fov为垂直视角即可视空间顶面与底面间的夹角, aspect为近裁剪面的宽高比, near必须小于far
+viewMatrix.setPerspective(fov, aspect, near, far)
 ```
 
 
