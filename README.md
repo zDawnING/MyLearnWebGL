@@ -670,6 +670,36 @@ f = 1 / ( c + l * d + q * d * d )
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter09/multi_join_model.html)
 
+### 雾化
+
+这个原理与OpenGL那边的实现基本相同，这里直接指引至我的[OpenGL进阶指引-雾化](https://github.com/zDawnING/MyLearnOpenGL/blob/master/docs/improve_note.md#%E9%9B%BE%E5%8C%96)
+
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/control_fog.html)
+
+### alpha混合
+
+如果要给物体实现半透明，则需要开启alpha混合，步骤如下：
+```javascript
+// 开启混合
+gl.enable(gl.BLEND);
+// 指定混合函数
+gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+// 这里的示例可以理解为：1:源alpha, 2: 1-源alpha（目标alpha），该方法的前者是混合的时候源采用什么样的alpha,后者是目标采用什么的alpha.
+```
+在使用混合时，需要用到两个颜色, 即`源颜色(source color)`和`目标颜色(destination color)`, 而混合即是目标颜色混进了源颜色当中，但参数的实质是指定源/目标颜色在混合后的颜色中所占的权重
+```
+gl.blendFunc(src_factor, dst_factor)
+// 混合后的颜色的计算公式为：
+color (RGB) = source color × src_factor + destination color × dst_factor
+```
+另外还要一种常用的混合：`加法混合(additive blending)`, 这种混合会使绘制区域格外明亮，一般用做爆炸效果或亮光提醒
+
+下图为参数权重因子的系数表和颜色计算例子：
+![src_factor&dst_factor1](/docs/img/QQ20180516-210052@2x.png)
+![src_factor&dst_factor2](/docs/img/QQ20180516-210205@2x.png)
+
+
+
 
 
 
