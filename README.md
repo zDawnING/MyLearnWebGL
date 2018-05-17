@@ -721,15 +721,54 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 
 
 这里描述下使用帧缓冲的流程：
+1. 创建帧缓冲区对象 - gl.createFramebuffer()
+2. 创建纹理对象并设置尺寸和参数 - gl.createTexture(), gl.bindTexture(), gl.texImage2D(), gl.Parameteri()
+3. 创建渲染缓冲区对象 - gl.createRenderbuffer()
+4. 绑定渲染缓冲区对象至target并设置尺寸 - gl.bindRenderbuffer(), gl.renderbufferStorage()
+5. 把纹理对象添加至帧缓冲区的颜色附件对象上 -  gl.bindFramebuffer(), gl.framebufferTexture2D()
+6. 把渲染缓冲区对象添加至帧缓冲区的深度附件对象上 - gl.framebufferRenderbuffer()
+7. 检查帧缓冲区对象是否配置正确 - gl.checkFramebufferStatus()
+8. 使用帧缓冲区对象绘制 - gl.bindFramebuffer()
 
+> `gl.texImage2D`的最后一个参数是图像数据，在这里可以设置为null, 为纹理对象分配一块空白的存储纹理图像区域，并注入对象至帧缓冲对象中方便访问。
 
+> 解除渲染缓冲区的绑定直接 `gl.bindRenderbuffer(gl.RENDERBUFFER, null)`，解除帧缓冲对象也类似
 
+> 深度附件对象和渲染缓冲区的宽高必须与颜色附件对象的纹理缓冲区相同
 
+> 与OpenGL不同的是，WebGL的颜色附件对象只能有一个
 
+> 在使用帧缓冲实现渲染到纹理要注意性能和绘制速度的考虑, 如何可以的话可以开启背面消除功能，理想的情况下可以减半开销和加速。`gl.enable(gl.CULL_FACE)`
 
+最好是看一下这里的完整示例，可以更清晰理解过程：
 
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/framebuffer_object.html)
 
+### 阴影
 
+这里的阴影实现原理是：将相机放置与光源位置相同的地方，视线与光源一致，比较物体在光源坐标系下的深度值，如果同一个射线下存在多个深度值，除了最小的深度之外其他深度值所对应的点都在阴影当中。如下图：
+![shadow](/docs/img/QQ20180517-102327@2x.png)
 
+下面使用<b>两对</b>着色器来实现阴影：
+
+1. 首先实现一张叫`阴影贴图(shadow map)`的纹理，利用帧缓冲区存储，计算光源与物体距离distance
+
+> 直接理解这里比较莫名其妙，实际上是我们通过在纹理中将distance数据(实质是深度z值)存储在纹素当中，然后通过`阴影映射(shadow mapping)`来实现真正的阴影绘制。
+
+> 生成阴影贴图的片元着色器所用的gl_FragCoord.xy是片元在屏幕的坐标，z值则是深度值，是通过下面公式求得：
+> `(gl_Position.xyz / gl_Position.w)/2.0 + 0.5`, 公式中进行的归一化，即限制范围在(0, 1), 这个是纹理坐标和纹素的区间范围。
+
+2. 阴影映射的过程是：
+* 将视点放置于光源处，运行创建阴影贴图的着色器，将当前片元的z值写入阴影贴图中，写入方式是放在纹理贴图的颜色某个分量上
+* 将视点移回正常位置，使用新的一对着色器绘制场景，在顶点着色器中求出每个顶点在光源坐标系下的坐标并（通过内插）传入片元着色器，此时得到片元在光源坐标系下的坐标。阴影映射坐标则可从这个坐标进行上面公式的投影处理和归一化(0,1)可得，又因为阴影映射坐标中的xy分量是当前片元在阴影贴图中对应纹素的纹理坐标，那么可以使用取样器将阴影贴图中的存储了深度值的某分量取出，将这个深度值与阴影映射坐标中的z值做比较，如果后者大于前者则当前片元在阴影当中。
+
+> 在上面的比较过程中，往往要给深度值加上一个偏移量来做调整，如果没有这个偏移，阴影有可能会出现出现马赫带(mach band)现象(斑马纹), 出现马赫带的主要原因是阴影贴图存储的深度数据精度与实际深度缓冲区中的深度精度不匹配造成的。下图是书中解释偏移量的设置原因和计算方法：
+![mach band reason](/docs/img/QQ20180517-133725@2x.png)
+![mach band resolving](/docs/img/QQ20180517-133808@2x.png)
+
+> 有个问题就是，一旦光源距离比较远就会导致阴影消失，因为gl.FragCoord.z在光源足够远的时候，距离的值太大而无法存储在8位的颜色分量中，解决方案是：使用阴影贴图中的r,g,b,a这四个分量，用4个字节共32(4x8)位来存储z值。解释说明如下图：
+![up color precision](/docs/img/QQ20180517-134933@2x.png)
+
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/shadow.html)
 
 
