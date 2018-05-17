@@ -8,11 +8,20 @@
 			margin: 0;
 			padding: 0;
 		}
+
+		iframe {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+
+			width: 400px;
+			height: 400px;
+		}
 	</style>
 </head>
-<body onload="main()">
+<body>
 	<canvas id="example" width="400" height="400">no support canvas</canvas>
-
+	
 	<script type="text/javascript">
 		function main() {
 			var canvas = document.getElementById("example");
@@ -24,6 +33,7 @@
 			ctx.fillStyle = 'rgba(0, 0, 255, 1.0)'; // 填充颜色
 			ctx.fillRect(120, 10, 150, 150); // 填充形状
 		}
+		window.onload = main;
 	</script>
 </body>
 </html>
