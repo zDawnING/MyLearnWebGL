@@ -771,4 +771,124 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/shadow.html)
 
+### 3D模型解析
+
+市面上的3D建模工具种类非常多，格式也千差万别，这里只讲述解析模型的基本步骤和一些解析方案，并举例obj这种非常常见的模型格式。
+
+关于obj模型文件的介绍就不多说了，自行查阅资料。这里先描述它的基本特点：
+1. `.obj`文件仅是一种3D模型文件，不包含动画、材质特性、贴图路径、物理特性、粒子等信息
+2. `.obj`文件主要支持多边形模型，支持3个点以上的面(即非三角形网格)
+3. `.obj`文件支持法线(normal)和纹理坐标(texCoord)
+
+obj模型的基本组成包括`顶点坐标部分`，`表面定义部分`，`材质定义部分`等，其基本结构：
+1. `#`开头的注释内容，一般是建模软件自动生成的或是人工添加(提供可读性)
+2. `usemtl`开头则是材质引用，由于obj模型文件不存储材质信息，则材质信息由外部的MTL文件来存储，obj文件中只放置了引用
+3. `v`开头的行定义了模型的顶点信息，其中w是可能不存在，没有则为1.0, 而`v`后面还有字母的，如`vt`,`vn`则分别是纹理坐标和法线
+4. `f`开头的行定义了模型的面索引，其中一行的数据项(每项之间有空格隔开)有4个，每项可能有`/`进行分割其他数据类型项，格式：`f 顶点索引/uv点索引/法线索引`
+
+> `f`行中的数据要注意绘制面索引的顺序，从第一个点开始至第四个点，连接点的顺时针和逆时针排列决定法线的方向(即面的正反)，面的连接点错误是导致出现模型碎面的一个重要原因。另外一个面不能出现相同的顶点索引，这个是检查obj文件出错的要点。
+
+MTL材质文件的基本组成：
+1. `#`开头的注释内容
+2. `newmtl`开头则是定义新材质，后面则是材质名，该名会被obj文件所引用
+3. `Ka`,`Kd`,`Ks`，顾名思义，分别是表面的环境色，漫射色，高光色，颜色格式可能是RGB(暂不知有没有A,待查证)，每个分量范围`[0.0, 1.0]`
+4. `Ns`,`Ni`,`d`, `illum`,分别表示高光色的权重，表面光学密度，透明度，光照模型
+
+> 这里提供一些obj文件中可能出现的顶点数据类型：(其实就是先混眼熟，后面不容易被某些陌生的数据干扰思考)
+```
+顶点数据(Vertex data)：
+v 几何体顶点 (Geometric vertices)
+vt 贴图坐标点 (Texture vertices)
+vn 顶点法线 (Vertex normals)
+vp 参数空格顶点 (Parameter space vertices)
+
+自由形态曲线(Free-form curve)/表面属性(surface attributes):
+deg 度 (Degree)
+bmat 基础矩阵 (Basis matrix)
+step 步尺寸 (Step size)
+cstype 曲线或表面类型 (Curve or surface type)
+
+元素(Elements):
+p 点 (Point)
+l 线 (Line)
+f 面 (Face)
+curv 曲线 (Curve)
+curv2 2D曲线 (2D curve)
+surf 表面 (Surface)
+
+自由形态曲线(Free-form curve)/表面主体陈述(surface body statements):
+parm 参数值 (Parameter values )
+trim 外部修剪循环 (Outer trimming loop)
+hole 内部整修循环 (Inner trimming loop)
+scrv 特殊曲线 (Special curve)
+sp 特殊的点 (Special point)
+end 结束陈述 (End statement)
+
+自由形态表面之间的连接(Connectivity between free-form surfaces):
+con 连接 (Connect)
+成组(Grouping):
+g 组名称 (Group name)
+s 光滑组 (Smoothing group)
+mg 合并组 (Merging group)
+o 对象名称 (Object name)
+
+显示(Display)/渲染属性(render attributes):
+bevel 导角插值 (Bevel interpolation) 
+c_interp 颜色插值 (Color interpolation) 
+d_interp 溶解插值 (Dissolve interpolation) 
+lod 细节层次 (Level of detail) 
+usemtl 材质名称 (Material name) 
+mtllib 材质库 (Material library) 
+shadow_obj 投射阴影 (Shadow casting) 
+trace_obj 光线跟踪 (Ray tracing) 
+ctech 曲线近似技术 (Curve approximation technique) 
+stech 表面近似技术 (Surface approximation technique)
+```
+
+<b>解析模型文件</b>
+
+所谓解析模型文件就是将webgl不能直接读取成模型的模型文件通过手工拆解数据结构来转变成可用的模型数据，然后再绘制出来。
+
+工欲善其事必先利其器，在解析文件内容之前，得准备好相应的工具：
+1. 加载文件函数，用于加载本地文件，类似之前的例子中加载外部的shader文件一样
+2. 字符串解析类，用于对读取到的模型文件内容字符串进行每一行的解析，并重新构造数据并存储成对应的模板对象放置与指定的数据载体中。
+3. 模型文件的文档模板对象，包括材质模板对象，模拟C语言中的结构体，使解析出来的数据有一个合适的数据结构
+4. 解析后的数据载体，负责存储解析后的全部类型数据，提供模型绘制时数据的读取
+
+划分数据层级，根据层级从上往下解析，下图为obj文件中的数据结构, 理解该结构即可理清解析步骤。
+![objdoc](/docs/img/QQ20180517-221421@2x.png)
+
+可以直接阅读demo中的解析模型代码来观察整个解析流程
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/load_obj_model.html)
+
+### WebGL上下文丢失
+
+当电脑进入休眠后，如果重新唤醒再访问当前webgl的页面，很可能导致绘图上下文丢失，因为图形硬件有可能被其他程序接管了，导致webgl程序运行停止。
+
+webgl提供了两个事件表示这状态：
+1.`上下文丢失事件(webglcontextlost)`, 当webgl上下文丢失时发生
+2.`上下文恢复事件(webglcontextrestored)`, 当浏览器完成webgl系统的重新启动后发生
+
+> 以上事件可以通过监听canvas对象来回调触发
+
+> 当上下文丢失了之后，应该停止动画`cancelAnimationFrame(requestId)`以确保在上下文重新恢复之前不再重绘，并且阻止浏览器对该事件的默认行为，其默认行为是不再触发上下文恢复事件，如果不阻止，则再触发会失败。
+
+======
+本文档未完待续。。。
+
+
+### 后记
+写这个文档是让自己对知识点的回顾，如果没有正确的理解，想要挤出只言片语还真的挺难，暂时更新至此，demo的展示尚不完善，主要是提醒我自己看源码的。
+本文档禁止转载，如有需要请联系本人。邮箱：384864323@qq.com
+
+
+
+
+
+
+
+
+
+
+
 
