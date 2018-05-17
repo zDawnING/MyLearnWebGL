@@ -795,7 +795,8 @@ MTL材质文件的基本组成：
 4. `Ns`,`Ni`,`d`, `illum`,分别表示高光色的权重，表面光学密度，透明度，光照模型
 
 > 这里提供一些obj文件中可能出现的顶点数据类型：(其实就是先混眼熟，后面不容易被某些陌生的数据干扰思考)
-```
+
+```markdown
 顶点数据(Vertex data)：
 v 几何体顶点 (Geometric vertices)
 vt 贴图坐标点 (Texture vertices)
