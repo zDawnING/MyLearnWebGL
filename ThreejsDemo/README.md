@@ -24,48 +24,48 @@
 示例代码：
 ```javascript
 
-	// 初始化所有配置
-	init(){
-		// 创建场景
-		scene = new THREE.Scene();
-		//...
-		// 创建渲染器
-		renderer = new THREE.WebGLRenderer();
-		//...
-		// 创建相机（例透视投影相机）
-		camera = new THREE.PerspectiveCamera( fov, width/height, near, far );
-		//...
-		// 初始化性能检测组件state
-		stats = initStats();
-		//...
-		// 初始化控制器界面UI
-		control = initControl();
-		//...
-		// 期间创建相机，物体模型，光源等
-		//...
-		// 将渲染器的输出载入指定的div元素中
-		document.getElementById("webgl-output").appendChild(renderer.domElement);
-		// 执行渲染
-		render();
-	}
+// 初始化所有配置
+init(){
+  // 创建场景
+  scene = new THREE.Scene();
+  //...
+  // 创建渲染器
+  renderer = new THREE.WebGLRenderer();
+  //...
+  // 创建相机（例透视投影相机）
+  camera = new THREE.PerspectiveCamera( fov, width/height, near, far );
+  //...
+  // 初始化性能检测组件state
+  stats = initStats();
+  //...
+  // 初始化控制器界面UI
+  control = initControl();
+  //...
+  // 期间创建相机，物体模型，光源等
+  //...
+  // 将渲染器的输出载入指定的div元素中
+  document.getElementById("webgl-output").appendChild(renderer.domElement);
+  // 执行渲染
+  render();
+}
 
-	// 渲染方法
-	render(){
-		// 更新state的检测数据
-		state.update();
-		//...
-		// 执行场景中某些对象的绘制时的动作
-		//...
-		// 利用帧动画根据浏览器时间间隔递归调用渲染方法，
-  	requestAnimationFrame(render);
-  	// 让渲染器使用定义的相机进行渲染场景
-  	renderer.render( scene, camera );
-	}
+// 渲染方法
+render(){
+  // 更新state的检测数据
+  state.update();
+  //...
+  // 执行场景中某些对象的绘制时的动作
+  //...
+  // 利用帧动画根据浏览器时间间隔递归调用渲染方法，
+  requestAnimationFrame(render);
+  // 让渲染器使用定义的相机进行渲染场景
+  renderer.render( scene, camera );
+}
 
-	// 配置state
-	initStats() { ... };
-	// 配置控制界面UI
-	initControl() { ... };
+// 配置state
+initStats() { ... };
+// 配置控制界面UI
+initControl() { ... };
 ```
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter01/basic_scene.html)
@@ -92,7 +92,7 @@
 2. 自定义网格对象时，顶点数据与索引数据的使用，实质跟WebGL的中的[使用顶点索引绘制]的使用基本上是类似的，只不过加上了一些数据的封装；另外每个面的法向量也不需要我们自行逐面进行向量叉乘求得，THhreejs内部已经提供方法进行计算获取。
 3. 不管使用新版的Threejs还是旧版的，都要注意控制台上的信息打印，除了错误信息之外，控制台也会给出一些使用旧API的更新提示，这个要加以留意，说不定可以提高渲染速度或减少开销等。
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter01/basic_scene.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter02/basic_geo_control.html)
 
 
 
