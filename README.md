@@ -1,5 +1,7 @@
 ## Welcome to My WebGL Learning
 
+> Threejs学习文档指引：[Threejs Learning](/ThreejsDemo)
+
 ### 概述
 
 > 本文档主要用于`自我知识点检测`和`查阅`的，非教学向，亦可当做是《WebGL Programming Guide》的读书笔记, 并且由于篇幅有限，内容根据我自身情况进行概括总结。
