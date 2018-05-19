@@ -2,7 +2,7 @@
 <html>
 <meta charset="utf-8">
 <head>
-	<title>基础场景设置</title>
+	<title>基础物理引擎应用</title>
 </head>
 <style type="text/css">
 	body{
@@ -50,7 +50,7 @@
 		var gui; // 控制界面变量的组件
 
 		// 场景对象(放置全局方便特殊处理)
-		var ground, meshs = [], car;
+		var ground, meshs = [], dominos = [], car;
 		var sliderConstraint, doorConstraintLeft, doorConstraintRight, ballPinConstraint, carConstraint;
 		// 场景相关控制变量
 		var step = 0, direction = 1, fallDownHight = 15; // 记录增量
@@ -144,6 +144,7 @@
 	    			scene.remove(e);
 	    		})
 	    		meshs = [];
+          dominos = [];
 	    	}
 	    };
 	    materialContr = new function(){
@@ -898,6 +899,7 @@
 				domino.lookAt(new THREE.Vector3(0, 3.5, 0)); // 这样做会使物体中心指向当前位置
 				scene.add(domino);
 				dominos.push(domino);
+        meshs.push(domino);
 			})
 		}
 
