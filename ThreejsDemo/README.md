@@ -325,13 +325,13 @@ initControl() { ... };
 #### 环境贴图
 
 截图：
-![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/enviroment_map.png)
+![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/environment_map.png)
 
 功能点：
 
 要点：
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter09/enviroment_map.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter09/environment_map.html)
 
 #### UV映射
 
