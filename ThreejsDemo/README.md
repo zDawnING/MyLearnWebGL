@@ -163,8 +163,10 @@ initControl() { ... };
 ![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/combinded_material.png)
 
 功能点：
+1. 使用`SceneUtils.createMultiMaterialObject`方法进行多种类型的材质合并
 
 要点：
+1. 创建多材质对象网格时，几何体会被复制，返回一个网格组，两个网格完全相同，这样一来就很容易产生Z-fighting(深度冲突)，这种冲突可以手动给网格做缩小偏移，或者直接给在材质属性polygon offset(多边形偏移)，偏移量的值有物体表面相对于观察者视线角度决定
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter04/combinded_material.html)
 
@@ -174,8 +176,12 @@ initControl() { ... };
 ![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/line_material.png)
 
 功能点：
+1. 构建线图顶点集
+2. 设置不同顶点的颜色
 
 要点：
+1. 使用线条材质的重要一点是：如何构建自己整体线条的顶点分布，一般来说线条特性是可以通过配置材质属性实现
+2. demo中的例子在给几何体对象赋予颜色数据时，可以控制颜色的色调，饱和度，亮度(HSL)，来让色彩更加合适
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter04/line_material.html)
 
