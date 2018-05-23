@@ -94,7 +94,7 @@ shader初始化流程（基本上与OpenGL一致）：
   gl.uniformMatrix4fv(u_MVPMatrix, false, mvpMatrix.elements);
 ```
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter02/point.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter02/point.html)
 
 ### WebGL的坐标系统
 
@@ -171,7 +171,7 @@ function mouseClick(e, gl, a_Position, u_Color){
 }
 
 ```
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter02/click_point_c.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter02/click_point_c.html)
 
 ### 使用WebGL中的缓冲区对象
 
@@ -201,7 +201,7 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 这里直接放一张顶点着色器执行过程中的缓冲区数据是如何传输的
 ![buffer pass vs](/docs/img/QQ20180514-172628@2x.png)
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter03/quad.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter03/quad.html)
 
 当存在多种种类的顶点数据时，可以采取为每种数据都建立一个缓冲区，因此则是多个缓冲区对象向着色器传递多种数据，这样从代码上来看比较易于理解，但是这种只能适合数据量不大的情况。当程序中需要载入上万个甚至更多个顶点时，这种做法就会导致顶点数据维护困难，则更加消耗CPU向显卡传递数据的性能和时间。因此与OpenGL一样，WebGL同样允许将多种数据打包在同一个对象中，使用`交错组织(interleaving)`数据来存储，然后步进和偏移参数来调整获取不同种类的数据。
 
@@ -320,7 +320,7 @@ function loadTexture(gl, n, texture, u_Sampler, image){
 
 ```
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter05/texture_quad.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter05/texture_quad.html)
 
 <b>多重纹理的使用：</b>
 * 激活多个纹理单元
@@ -450,7 +450,7 @@ vec3 v3Arr[3];
 
 这里有个示例可以了解它的使用
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/rounded_point.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter10/rounded_point.html)
 
 <b>函数</b>
 
@@ -673,13 +673,13 @@ f = 1 / ( c + l * d + q * d * d )
 对于层次模型，其实没有新的知识点要了解，主要是在绘制方法上控制好层级的绘制顺序即可，另外一点是最好是使用一个存储矩阵的数组控制矩阵的出栈和入栈的使用。
 具体的流程和注释已经完整写在demo当中，直接参考代码比较容易理解
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter09/multi_join_model.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter09/multi_join_model.html)
 
 ### 雾化
 
 这个原理与OpenGL那边的实现基本相同，这里直接指引至我的[OpenGL进阶指引-雾化](https://github.com/zDawnING/MyLearnOpenGL/blob/master/docs/improve_note.md#%E9%9B%BE%E5%8C%96)
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/control_fog.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter10/control_fog.html)
 
 ### alpha混合
 
@@ -747,7 +747,7 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 
 最好是看一下这里的完整示例，可以更清晰理解过程：
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/framebuffer_object.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter10/framebuffer_object.html)
 
 ### 阴影
 
@@ -774,7 +774,7 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 > 有个问题就是，一旦光源距离比较远就会导致阴影消失，因为gl.FragCoord.z在光源足够远的时候，距离的值太大而无法存储在8位的颜色分量中，解决方案是：使用阴影贴图中的r,g,b,a这四个分量，用4个字节共32(4x8)位来存储z值。解释说明如下图：
 ![up color precision](/docs/img/QQ20180517-134933@2x.png)
 
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/shadow.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter10/shadow.html)
 
 ### 3D模型解析
 
@@ -865,7 +865,7 @@ MTL材质文件的基本组成：
 ![objdoc](/docs/img/QQ20180517-221421@2x.png)
 
 可以直接阅读demo中的解析模型代码来观察整个解析流程
-完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/chapter10/load_obj_model.html)
+完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter10/load_obj_model.html)
 
 ### WebGL上下文丢失
 
