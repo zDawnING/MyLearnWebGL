@@ -8,7 +8,9 @@ module.exports = {
 	},
 	output: {
     filename: '[name].bundle.js',
-    path: path.resolve(__dirname, 'dist')
+    path: path.resolve(__dirname, 'dist'),
+    //静态资源路径修改
+    publicPath: './dist/'
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -34,9 +36,21 @@ module.exports = {
 	    {
         test: /\.(png|svg|jpg|gif)$/,
         use: [
-          'file-loader'
+          {
+            loader: 'file-loader',
+            options: {
+              name: 'images/[name].[hash:8].[ext]'
+            }
+          }
         ]
       },
+      //以后再采用下载obj进行加载
+      // {
+      //   test: /\.obj$/,
+      //   use: [
+      //     'file-loader'
+      //   ]
+      // },
       {
         test: /\.(ttf|woff|woff2|otf)$/,
         loader: 'url-loader'
@@ -59,7 +73,8 @@ module.exports = {
 		alias: {
 		  fpviewer: path.resolve(__dirname, 'src/views/fpviewer/'),
       vendor_gl: path.resolve(__dirname, 'src/vendor/webgl/'),
-      shader_gl: path.resolve(__dirname, 'src/components/shader/')
+      shader_gl: path.resolve(__dirname, 'src/components/shader/'),
+      res_gl: path.resolve(__dirname, 'src/assets/')
 		}
 	}
 }

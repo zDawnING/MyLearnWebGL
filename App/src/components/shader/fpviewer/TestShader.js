@@ -7,11 +7,15 @@ const TestShader = {
 	vertexShader: [
 
 		"attribute vec4 a_Position;",
-		"attribute float a_PointSize;",
+		"attribute vec2 a_TexCoord;",
+
+		"uniform mat4 u_MVPMatrix;",
+
+		"varying vec2 v_TexCoord;",
 
 		"void main(){",
-			"gl_Position = a_Position;",
-			"gl_PointSize = a_PointSize;",
+			"gl_Position = u_MVPMatrix * a_Position;",
+			"v_TexCoord = a_TexCoord;",
 		"}"
 
 	].join("\n"),
@@ -22,8 +26,12 @@ const TestShader = {
 		"precision mediump float;",
 		"#endif",
 
-		"void main() {",
-			"gl_FragColor = vec4( 1.0, 0.0, 0.0, 0.5 );",
+		"uniform sampler2D u_Sampler;",
+
+		"varying vec2 v_TexCoord;",
+
+		"void main(){",
+			"gl_FragColor = texture2D(u_Sampler, v_TexCoord);",
 		"}"
 
 	].join("\n")

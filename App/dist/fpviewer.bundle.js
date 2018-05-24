@@ -62,7 +62,7 @@
 /******/ 	__webpack_require__.o = function(object, property) { return Object.prototype.hasOwnProperty.call(object, property); };
 /******/
 /******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
+/******/ 	__webpack_require__.p = "./dist/";
 /******/
 /******/
 /******/ 	// Load entry module and return exports
@@ -115,6 +115,17 @@ eval("\n/**\n * When source maps are enabled, `style-loader` uses a link element
 
 /***/ }),
 
+/***/ "./src/assets/img/sky.jpg":
+/*!********************************!*\
+  !*** ./src/assets/img/sky.jpg ***!
+  \********************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+eval("module.exports = __webpack_require__.p + \"images/sky.2b11efd6.jpg\";\n\n//# sourceURL=webpack:///./src/assets/img/sky.jpg?");
+
+/***/ }),
+
 /***/ "./src/components/shader/fpviewer/TestShader.js":
 /*!******************************************************!*\
   !*** ./src/components/shader/fpviewer/TestShader.js ***!
@@ -123,7 +134,7 @@ eval("\n/**\n * When source maps are enabled, `style-loader` uses a link element
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\n/**\n * 测试shader\n * @type {Object}\n */\nvar TestShader = {\n\t// 顶点着色器\n\tvertexShader: [\"attribute vec4 a_Position;\", \"attribute float a_PointSize;\", \"void main(){\", \"gl_Position = a_Position;\", \"gl_PointSize = a_PointSize;\", \"}\"].join(\"\\n\"),\n\t// 片元着色器\n\tfragmentShader: [\"#ifdef GL_ES\", \"precision mediump float;\", \"#endif\", \"void main() {\", \"gl_FragColor = vec4( 1.0, 0.0, 0.0, 0.5 );\", \"}\"].join(\"\\n\")\n};\n\nexports.default = TestShader;\n\n//# sourceURL=webpack:///./src/components/shader/fpviewer/TestShader.js?");
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\n/**\n * 测试shader\n * @type {Object}\n */\nvar TestShader = {\n\t// 顶点着色器\n\tvertexShader: [\"attribute vec4 a_Position;\", \"attribute vec2 a_TexCoord;\", \"uniform mat4 u_MVPMatrix;\", \"varying vec2 v_TexCoord;\", \"void main(){\", \"gl_Position = u_MVPMatrix * a_Position;\", \"v_TexCoord = a_TexCoord;\", \"}\"].join(\"\\n\"),\n\t// 片元着色器\n\tfragmentShader: [\"#ifdef GL_ES\", \"precision mediump float;\", \"#endif\", \"uniform sampler2D u_Sampler;\", \"varying vec2 v_TexCoord;\", \"void main(){\", \"gl_FragColor = texture2D(u_Sampler, v_TexCoord);\", \"}\"].join(\"\\n\")\n};\n\nexports.default = TestShader;\n\n//# sourceURL=webpack:///./src/components/shader/fpviewer/TestShader.js?");
 
 /***/ }),
 
@@ -198,6 +209,42 @@ eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n  value: true\n});\n
 
 /***/ }),
 
+/***/ "./src/views/fpviewer/buffer.js":
+/*!**************************************!*\
+  !*** ./src/views/fpviewer/buffer.js ***!
+  \**************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\n\nvar initArrayBuffer = function initArrayBuffer(gl, data, num, type, attribute) {\n\tvar buffer = gl.createBuffer();\n\tif (!buffer) {\n\t\tconsole.log(\"not create buffer\");\n\t\treturn false;\n\t}\n\tgl.bindBuffer(gl.ARRAY_BUFFER, buffer);\n\tgl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);\n\n\tvar a_attribute = gl.getAttribLocation(gl.program, attribute);\n\tif (a_attribute < 0) {\n\t\tconsole.log(\"not find attribute\");\n\t\treturn false;\n\t}\n\n\tgl.vertexAttribPointer(a_attribute, num, type, false, 0, 0);\n\tgl.enableVertexAttribArray(a_attribute);\n\n\treturn true;\n};\n\n/**\n * 初始化vertexBuffer对象\n * @param  {[type]} gl [description]\n * @return {[type]}    [description]\n */\nvar initVertexBuffers = function initVertexBuffers(gl, data) {\n\t// 创建缓冲区对象\n\tvar indexBuffer = gl.createBuffer();\n\tif (!indexBuffer) {\n\t\tconsole.log('not create buffer object');\n\t\treturn false;\n\t}\n\n\tif (!initArrayBuffer(gl, data.vertices, 3, gl.FLOAT, 'a_Position')) return -1;\n\tif (!initArrayBuffer(gl, data.texCoords, 2, gl.FLOAT, 'a_TexCoord')) return -1;\n\n\tgl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);\n\tgl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.indices, gl.STATIC_DRAW);\n\n\treturn true;\n};\n\nexports.default = initVertexBuffers;\n\n//# sourceURL=webpack:///./src/views/fpviewer/buffer.js?");
+
+/***/ }),
+
+/***/ "./src/views/fpviewer/click_rotate_obj.js":
+/*!************************************************!*\
+  !*** ./src/views/fpviewer/click_rotate_obj.js ***!
+  \************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n  value: true\n});\n/**\n * 适配pc与移动端的鼠标事件\n * @param  {[type]} element [description]\n * @param  {[type]} type    [description]\n * @param  {[type]} handler [description]\n * @return {[type]}         [description]\n */\nvar addHandler = function addHandler(element, type, handler) {\n  if (element.addEventListener) {\n    element.addEventListener(type, handler, true);\n  } else if (element.attachEvent) {\n    element.attachEvent(\"on\" + type, handler);\n  } else {\n    element[\"on\" + type] = handler;\n  }\n};\n\n/**\n * 初始化鼠标拖拽事件\n * @param  {[type]} canvas       [description]\n * @param  {[type]} currentAngle [description]\n * @return {[type]}              [description]\n */\nvar initEventHandlers = function initEventHandlers(canvas, currentAngle) {\n  // 默认不拖拽\n  var dragging = false;\n  // 初始化鼠标最终移动位置坐标\n  var lastX = -1,\n      lastY = -1;\n\n  var down = 'ontouchstart' in canvas ? 'touchstart' : 'mousedown';\n  addHandler(canvas, down, function (e) {\n    var ev = 'ontouchstart' in canvas ? e.touches[0] : e;\n    var x = ev.clientX,\n        y = ev.clientY;\n    // 鼠标在canvas内拖动, 获取canvas当前坐标数据\n    var rect = ev.target.getBoundingClientRect();\n    // 锁定canvas范围内\n    if (rect.left <= x && x < rect.right && rect.top <= y && y < rect.bottom) {\n      lastX = x;lastY = y;\n      dragging = true;\n    }\n  });\n\n  var move = 'ontouchmove' in canvas ? 'touchmove' : 'mousemove';\n  addHandler(canvas, move, function (e) {\n    var ev = 'ontouchmove' in canvas ? e.touches[0] : e;\n    var x = ev.clientX,\n        y = ev.clientY;\n    if (dragging) {\n      var factor = 100 / canvas.height; // 旋转因子 \n      var dx = factor * (x - lastX);\n      var dy = factor * (y - lastY);\n      // 控制Y轴旋转角度在-90至90度之间，防止万向锁问题\n      currentAngle[0] = Math.max(Math.min(currentAngle[0] + dy, 90.0), -90.0);\n      currentAngle[1] = currentAngle[1] + dx;\n    }\n    lastX = x, lastY = y;\n  });\n\n  var up = 'ontouchend' in canvas ? 'touchend' : 'mouseup';\n  addHandler(canvas, up, function (e) {\n    dragging = false;\n  });\n};\n\nexports.default = initEventHandlers;\n\n//# sourceURL=webpack:///./src/views/fpviewer/click_rotate_obj.js?");
+
+/***/ }),
+
+/***/ "./src/views/fpviewer/data.js":
+/*!************************************!*\
+  !*** ./src/views/fpviewer/data.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n  value: true\n});\n\n// import niutouObj from \"res_gl/model/niutou.obj.js\";\n// const OBJ = require('webgl-obj-loader');\n\nvar initNiuModelData = exports.initNiuModelData = function initNiuModelData() {\n  // console.log(niutouObj);\n  // var mesh = new OBJ.Mesh(niutouObj);\n  // console.log(mesh);\n};\n\nvar initCubeData = exports.initCubeData = function initCubeData() {\n  // Create a cube\n  //    v6----- v5\n  //   /|      /|\n  //  v1------v0|\n  //  | |     | |\n  //  | |v7---|-|v4\n  //  |/      |/\n  //  v2------v3\n  var vertices = new Float32Array([// Vertex coordinates\n  1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, // v0-v1-v2-v3 front\n  1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, // v0-v3-v4-v5 right\n  1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, // v0-v5-v6-v1 up\n  -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, // v1-v6-v7-v2 left\n  -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, // v7-v4-v3-v2 down\n  1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0 // v4-v7-v6-v5 back\n  ]);\n\n  var texCoords = new Float32Array([// Texture coordinates\n  1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, // v0-v1-v2-v3 front\n  0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, // v0-v3-v4-v5 right\n  1.0, 0.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0.0, // v0-v5-v6-v1 up\n  1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, // v1-v6-v7-v2 left\n  0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0, // v7-v4-v3-v2 down\n  0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0 // v4-v7-v6-v5 back\n  ]);\n\n  // Indices of the vertices\n  var indices = new Uint8Array([0, 1, 2, 0, 2, 3, // front\n  4, 5, 6, 4, 6, 7, // right\n  8, 9, 10, 8, 10, 11, // up\n  12, 13, 14, 12, 14, 15, // left\n  16, 17, 18, 16, 18, 19, // down\n  20, 21, 22, 20, 22, 23 // back\n  ]);\n\n  return { vertices: vertices, texCoords: texCoords, indices: indices };\n};\n\n//# sourceURL=webpack:///./src/views/fpviewer/data.js?");
+
+/***/ }),
+
 /***/ "./src/views/fpviewer/index.js":
 /*!*************************************!*\
   !*** ./src/views/fpviewer/index.js ***!
@@ -206,7 +253,19 @@ eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n  value: true\n});\n
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
-eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\n\nvar _cuonUtils = __webpack_require__(/*! vendor_gl/cuon-utils */ \"./src/vendor/webgl/cuon-utils.js\");\n\nvar _cuonMatrix = __webpack_require__(/*! vendor_gl/cuon-matrix */ \"./src/vendor/webgl/cuon-matrix.js\");\n\nvar _TestShader = __webpack_require__(/*! shader_gl/fpviewer/TestShader */ \"./src/components/shader/fpviewer/TestShader.js\");\n\nvar _TestShader2 = _interopRequireDefault(_TestShader);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar fpviewer = function fpviewer(resolve, reject) {\n\n\tvar canvas = document.createElement(\"canvas\");\n\n\tif (!canvas) {\n\t\tconsole.log(\"no read element\");\n\t\treject();\n\t}\n\tcanvas.width = window.innerWidth;\n\tcanvas.height = window.innerHeight;\n\n\tvar gl = (0, _cuonUtils.getWebGLContext)(canvas);\n\tif (!gl) {\n\t\tconsole.log('no read rendering context for webgl');\n\t\treject();\n\t}\n\n\tif (!(0, _cuonUtils.initShaders)(gl, _TestShader2.default.vertexShader, _TestShader2.default.fragmentShader)) {\n\t\tconsole.log('Failed to intialize shaders.');\n\t\treturn;\n\t}\n\n\tvar a_Position = gl.getAttribLocation(gl.program, 'a_Position');\n\tvar a_PointSize = gl.getAttribLocation(gl.program, 'a_PointSize');\n\tif (a_Position < 0 || a_PointSize < 0) {\n\t\tconsole.log('Failed to get the storage location');\n\t\treturn;\n\t}\n\n\tgl.vertexAttrib3f(a_Position, 0.0, 0.0, 0.0);\n\tgl.vertexAttrib1f(a_PointSize, 10.0);\n\n\tgl.clearColor(0.0, 0.0, 0.0, 1.0);\n\tgl.clear(gl.COLOR_BUFFER_BIT);\n\n\tgl.drawArrays(gl.POINTS, 0, 1);\n\n\tresolve(canvas);\n};\n\nexports.default = fpviewer;\n\n//# sourceURL=webpack:///./src/views/fpviewer/index.js?");
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\n\nvar _cuonUtils = __webpack_require__(/*! vendor_gl/cuon-utils */ \"./src/vendor/webgl/cuon-utils.js\");\n\nvar _cuonMatrix = __webpack_require__(/*! vendor_gl/cuon-matrix */ \"./src/vendor/webgl/cuon-matrix.js\");\n\nvar _TestShader = __webpack_require__(/*! shader_gl/fpviewer/TestShader */ \"./src/components/shader/fpviewer/TestShader.js\");\n\nvar _TestShader2 = _interopRequireDefault(_TestShader);\n\nvar _buffer = __webpack_require__(/*! fpviewer/buffer */ \"./src/views/fpviewer/buffer.js\");\n\nvar _buffer2 = _interopRequireDefault(_buffer);\n\nvar _data = __webpack_require__(/*! fpviewer/data */ \"./src/views/fpviewer/data.js\");\n\nvar _texture = __webpack_require__(/*! fpviewer/texture */ \"./src/views/fpviewer/texture.js\");\n\nvar _texture2 = _interopRequireDefault(_texture);\n\nvar _click_rotate_obj = __webpack_require__(/*! fpviewer/click_rotate_obj */ \"./src/views/fpviewer/click_rotate_obj.js\");\n\nvar _click_rotate_obj2 = _interopRequireDefault(_click_rotate_obj);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\n// 记录立方体的变换矩阵\nvar g_MVPMatrix = new _cuonMatrix.Matrix4();\n// camera view point\nvar cameraPos = new _cuonMatrix.Vector3([3.0, 3.0, 7.0]);\nvar distance = Math.pow(cameraPos.elements[0], 2) + Math.pow(cameraPos.elements[1], 2) + Math.pow(cameraPos.elements[2], 2);\n\n// 自定义视场宽度\nvar customViewWidth = 56;\n\nvar gl = void 0,\n    canvas = void 0,\n    viewMatrix = void 0;\n\nvar fpviewer = function fpviewer(resolve, reject) {\n\n\tcanvas = document.createElement(\"canvas\");\n\n\tif (!canvas) {\n\t\tconsole.log(\"no read element\");\n\t\treject();\n\t}\n\tcanvas.width = window.innerWidth;\n\tcanvas.height = window.innerHeight;\n\n\tgl = (0, _cuonUtils.getWebGLContext)(canvas);\n\tif (!gl) {\n\t\tconsole.log('no read rendering context for webgl');\n\t\treject();\n\t}\n\n\tif (!(0, _cuonUtils.initShaders)(gl, _TestShader2.default.vertexShader, _TestShader2.default.fragmentShader)) {\n\t\tconsole.log('Failed to intialize shaders.');\n\t\treject();\n\t}\n\n\tvar modelData = (0, _data.initCubeData)();\n\tvar dataNum = modelData.indices.length;\n\n\tif (!(0, _buffer2.default)(gl, modelData)) {\n\t\tconsole.log(\"failed to set vertices\");\n\t\treject();\n\t}\n\n\tgl.clearColor(0.0, 0.0, 0.0, 1.0);\n\tgl.enable(gl.DEPTH_TEST);\n\n\tvar u_MVPMatrix = gl.getUniformLocation(gl.program, 'u_MVPMatrix');\n\n\tviewMatrix = new _cuonMatrix.Matrix4();\n\t// 适配多种屏幕\n\tvar fov = calcFov(distance, customViewWidth, canvas.width / canvas.height);\n\tviewMatrix.setPerspective(fov, canvas.width / canvas.height, 0.1, 1000.0);\n\tviewMatrix.lookAt(cameraPos.elements[0], cameraPos.elements[1], cameraPos.elements[2], 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);\n\n\tvar currentAngle = [0.0, 0.0]; // [绕x轴旋转角度，绕y轴旋转角度]\n\t(0, _click_rotate_obj2.default)(canvas, currentAngle);\n\n\tif (!(0, _texture2.default)(gl, dataNum)) {\n\t\tconsole.log(\"not intialize texture\");\n\t\treject();\n\t}\n\n\t// 加载牛头模型\n\t// initNiuModelData();\n\n\tvar tick = function tick() {\n\t\tdraw(gl, dataNum, viewMatrix, u_MVPMatrix, currentAngle);\n\t\trequestAnimationFrame(tick);\n\t};\n\ttick();\n\n\twindow.addEventListener('resize', resizeWindows, false);\n\n\tresolve(canvas);\n};\n\nvar draw = function draw(gl, n, viewMatrix, u_MVPMatrix, currentAngle) {\n\tg_MVPMatrix.set(viewMatrix);\n\tg_MVPMatrix.rotate(currentAngle[0], 1.0, 0.0, 0.0);\n\tg_MVPMatrix.rotate(currentAngle[1], 0.0, 1.0, 0.0);\n\n\tgl.uniformMatrix4fv(u_MVPMatrix, false, g_MVPMatrix.elements);\n\n\tgl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);\n\n\tgl.drawElements(gl.TRIANGLES, n, gl.UNSIGNED_BYTE, 0);\n};\n\n/**\n * 计算相机 fov 的函数\n * @param d : 在相机前方 d 距离\n * @param w : 想要看到最大正方形区域边长为 w\n * @param r : 屏幕宽高比\n */\nfunction calcFov(d, w, r) {\n\tvar f;\n\tvar vertical = w;\n\tif (r < 1) {\n\t\tvertical = vertical / r;\n\t}\n\tf = Math.atan(vertical / d / 2) * 2 * (180 / Math.PI);\n\treturn f;\n}\n\nvar resizeWindows = function resizeWindows() {\n\tcanvas.width = window.innerWidth;\n\tcanvas.height = window.innerHeight;\n\t// 适配多种屏幕\n\tvar fov = calcFov(distance, customViewWidth, canvas.width / canvas.height);\n\tviewMatrix.setPerspective(fov, canvas.width / canvas.height, 0.1, 1000.0);\n\tviewMatrix.lookAt(3.0, 3.0, 7.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);\n\tgl.viewport(0, 0, canvas.width, canvas.height);\n};\n\nexports.default = fpviewer;\n\n//# sourceURL=webpack:///./src/views/fpviewer/index.js?");
+
+/***/ }),
+
+/***/ "./src/views/fpviewer/texture.js":
+/*!***************************************!*\
+  !*** ./src/views/fpviewer/texture.js ***!
+  \***************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+eval("\n\nObject.defineProperty(exports, \"__esModule\", {\n\tvalue: true\n});\n\nvar _sky = __webpack_require__(/*! res_gl/img/sky.jpg */ \"./src/assets/img/sky.jpg\");\n\nvar _sky2 = _interopRequireDefault(_sky);\n\nfunction _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }\n\nvar loadTexture = function loadTexture(gl, n, texture, u_Sampler, image) {\n\t// y轴翻转图片\n\tgl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);\n\t// 激活0号纹理\n\tgl.activeTexture(gl.TEXTURE0);\n\t// 绑定成2D纹理\n\tgl.bindTexture(gl.TEXTURE_2D, texture);\n\n\t// 设置纹理参数\n\tgl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);\n\n\t// 测试其他的纹理填充模式\n\t// 垂直方向镜像重复填充\n\t// gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.MIRRORED_REPEAT);\n\t// // 水平方向去取边缘值作为填充值\n\t// \tgl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);\n\n\t// 设置纹理图像参数\n\tgl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, image);\n\n\t// 将纹理单元设置到采样器对象\n\tgl.uniform1i(u_Sampler, 0);\n};\n\nvar initTexture = function initTexture(gl, num) {\n\t// 创建纹理对象\n\tvar texture = gl.createTexture();\n\tif (!texture) {\n\t\tconsole.log(\"not create texture object\");\n\t\treturn false;\n\t}\n\n\tvar u_Sampler = gl.getUniformLocation(gl.program, 'u_Sampler');\n\n\tvar image = new Image();\n\timage.onload = function () {\n\t\tloadTexture(gl, num, texture, u_Sampler, image);\n\t};\n\timage.src = _sky2.default;\n\n\treturn true;\n};\n\nexports.default = initTexture;\n\n//# sourceURL=webpack:///./src/views/fpviewer/texture.js?");
 
 /***/ })
 
