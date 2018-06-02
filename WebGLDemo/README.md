@@ -25,7 +25,7 @@
 * 设置canvas背景色 `gl.clearColor(r, g, b, a)`, 方法继承自OpenGL
 
 * 清除canvas `gl.clear(buffer)`, 实质清空各种缓冲区, 方法继承自OpenGL, 顶替多种的基本缓冲区; 若没有指定背景色，则参考：
-![gl.clear() func](/docs/img/QQ20180514-102405@2x.png)
+![gl.clear() func](../docs/img/QQ20180514-102405@2x.png)
 
 * 绘制操作 `gl.drawArray(mode, first, count)`, 该方法非常强大，可根据不同的模式和顶点数来指定绘制各种各样的图形
 
@@ -122,7 +122,7 @@ shader初始化流程（基本上与OpenGL一致）：
 4. 通过设定视口，将最后的坐标映射至屏幕对应坐标的像素，即转换至屏幕坐标系。
 
 完整的坐标转换流程图：
-![coordinate systems](/docs/img/coordinate_systems.png)
+![coordinate systems](../docs/img/coordinate_systems.png)
 
 把上面的坐标转换组合在一起，则形成了图形学里面经常提到的MVP矩阵
 
@@ -191,15 +191,15 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 * 启用attribute变量 - gl.enableVertexAttribArray()
 
 过程图：
-![buffers send to vs](/docs/img/QQ20180514-164711@2x.png)
+![buffers send to vs](../docs/img/QQ20180514-164711@2x.png)
 
 为了优化webgl同时处理大量同类型数据（如顶点和颜色数据）的性能，则引入了一种特殊数组`类型化数组（Typed Array）`, 因为这种数组的类型是预先已知的，因此可以进行高效处理。与普通js数组不同，不支持push和pop方法，并不能使用`[]`, 创建新的N个元素的空数组`new Float32Array(N)`,使用前请参考下图。
-![typed array](/docs/img/QQ20180514-171224@2x.png)
-![typed array func](/docs/img/QQ20180514-171315@2x.png)
+![typed array](../docs/img/QQ20180514-171224@2x.png)
+![typed array func](../docs/img/QQ20180514-171315@2x.png)
 
 上面步骤中的每个方法的细则这里就不一一叙述，具体请参考原书。
 这里直接放一张顶点着色器执行过程中的缓冲区数据是如何传输的
-![buffer pass vs](/docs/img/QQ20180514-172628@2x.png)
+![buffer pass vs](../docs/img/QQ20180514-172628@2x.png)
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter03/quad.html)
 
@@ -212,7 +212,7 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 当我们在绘制存在多个顶点叠加的图形时(非常常见)，很容易对相同的顶点重复绘制，在大量的顶点数据面前这种做法无疑是浪费。更好的解决方案是只储存不同的顶点，并设定绘制这些顶点的顺序就可以大大减轻开销。因此我们使用webgl提供的`gl.drawElements(mode, count, type, offset)` 绘制方法。
 
 使用上面的方法之前，需要将索引数据绑定至索引缓冲区(indexBuffer), 然后通过该方法获取缓冲区中的索引值，从顶点缓冲区(vertexBuffer)中获取顶点坐标、颜色，法向量等信息，最后分配给attribute变量并执行顶点着色器。如下图：
-![indexBuffer to vertexBuffer](/docs/img/QQ20180516-105634@2x.png)
+![indexBuffer to vertexBuffer](../docs/img/QQ20180516-105634@2x.png)
 
 > 这种方式可以循环利用顶点信息，控制内存开销，对于一般的3d模型来说，这个方法算是性价比挺高的，但是代价是需要通过索引来访问顶点数据，某种程度上使程序复杂化了，所以要根据系统需求来使用。
 
@@ -245,7 +245,7 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 * 在片元着色器中提取纹理中的纹素，对应设置给片元
 
 > 上面所说的映射方式则是使用纹理坐标，在webgl系统中纹理坐标是二维的，为了区分x,y坐标，webgl使用s,t坐标(st坐标系统),如下图; 另外这个坐标系统还有另外一个名称：uv坐标。针对GLSL中的语法，st分量可以访问纹理，这里使用st更加合适。
-![texture coordinate](/docs/img/QQ20180514-220749@2x.png)
+![texture coordinate](../docs/img/QQ20180514-220749@2x.png)
 
 给几何体添加纹理的流程如下：
 * 缓冲区数据上设置好纹理坐标
@@ -268,7 +268,7 @@ WebGL跟OpenGL一样，在整个工作流程中大部分工作就是大量的3d�
 > webgl支付的纹理类型有两种：1.`二维纹理(gl.TEXTURE_2D)`, 2.`立方体纹理(gl.TEXTURE_CUBE_MAP)`
 
 > 配置纹理对象参数和填充模式的方案：
-如下图：![texture param](/docs/img/QQ20180515-071103@2x.png)
+如下图：![texture param](../docs/img/QQ20180515-071103@2x.png)
 另外还有`mipmap`的纹理配置, 书中说可以直接查阅opengl的programming guide, 据我所知mipmap可是个好东西，它不仅仅是为了提高性能，而且能提高纹理质量减少失真情况。具体请查阅相关资料。
 
 > 设置纹理图像参数时，需要指定纹素的格式，这个跟图片的格式有关：如jpg、bmp则指定为gl.RGB,PNG则是gl.RGBA,而类似灰度图等则用gl.LUMINANCE(L,L,L,1L:luminamce)或者gl.LUMINANCE_ALPHA(L,L,L,a).(luminance被称为发光率，指一个表面的光亮程度，通常使用物体表面r,g,b颜色分量值的加权平均来计算)
@@ -333,7 +333,7 @@ function loadTexture(gl, n, texture, u_Sampler, image){
 GLSL ES是GLSL的简化版，因此很多地方几乎没有太大的变化，由于GLSL ES的语法在使用上非常灵活，特别是不同类型的相互运算，另外其内置函数也不少，因此这里罗列一些容易混淆或者遗忘的知识点，用于查阅和反复复习。
 
 <b>矢量和矩阵类型</b>
-![vec&mat type](/docs/img/QQ20180515-103949@2x.png)
+![vec&mat type](../docs/img/QQ20180515-103949@2x.png)
 
 <b>矢量构造函数的应用</b>
 ```c
@@ -360,10 +360,10 @@ mat2 m2a = mat2(1.0, 2.0, v2b);
 mat4 m4 = mat4(1.0)
 ```
 
-> 这里要说明一点，向矩阵构造函数中传入矩阵的每一个元素的顺序是列主序的，与上文中所使用的类型化数组一样，都是按列主序存储在数组中的（对OpenGL同样），可参考下图：![column major](/docs/img/QQ20180515-103559@2x.png)
+> 这里要说明一点，向矩阵构造函数中传入矩阵的每一个元素的顺序是列主序的，与上文中所使用的类型化数组一样，都是按列主序存储在数组中的（对OpenGL同样），可参考下图：![column major](../docs/img/QQ20180515-103559@2x.png)
 
 <b>访问元素</b>
-![vec elements](/docs/img/QQ20180515-112343@2x.png)
+![vec elements](../docs/img/QQ20180515-112343@2x.png)
 
 <b>分量名的应用</b>
 ```c
@@ -464,10 +464,10 @@ GLSL中可以为函数指定`参数限定字`,以控制参数行为。可分为3
 3. 上面两者都有
 
 下图为参数限定词的说明和举例
-![glsl func qualifiers](/docs/img/QQ20180515-180830@2x.png)
+![glsl func qualifiers](../docs/img/QQ20180515-180830@2x.png)
 
 另附 内置函数表：(个人觉得这里中文版比较合适)
-![glsl built-in func](/docs/img/QQ20180515-181435@2x.png)
+![glsl built-in func](../docs/img/QQ20180515-181435@2x.png)
 
 <b>存储限定字</b>
 
@@ -480,7 +480,7 @@ GLSL中可以为函数指定`参数限定字`,以控制参数行为。可分为3
 `varying`变量可以用于顶点着色器和片元着色器, 用于两个着色器传递数据，类型只能是float,vec2-4,mat2-4, 数值在内部会被内插，故数据类型需要限制
 
 > attribute，uniform和varying的最大数目与设备有关，参照下图：
-![storage qualifiers](/docs/img/QQ20180515-194418@2x.png)
+![storage qualifiers](../docs/img/QQ20180515-194418@2x.png)
 
 <b>精度限定字</b>
 
@@ -495,7 +495,7 @@ precision mediump float;
 两种着色器中大多的数据类型都配置了默认精度，只有片元着色器的float类型没有配置，因此要向上面的示例一样配置
 
 数据类型中共有三种精度（highp, mediump, lowp）,参考下图
-![precision qualifiers](/docs/img/QQ20180515-200750@2x.png)
+![precision qualifiers](../docs/img/QQ20180515-200750@2x.png)
 
 <b>预处理指令</b>
 
@@ -656,7 +656,7 @@ f = 1 / ( c + l * d + q * d * d )
 <b>聚光灯</b>
 
 聚光灯可用说是继承自点光源，而不同点是加了特定方向的约束。下图是聚光灯的特性：
-![light_casters_spotlight_angles](/docs/img/light_casters_spotlight_angles.png)
+![light_casters_spotlight_angles](../docs/img/light_casters_spotlight_angles.png)
 
 `LightDir`：由片元指向光源的向量
 
@@ -700,8 +700,8 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 另外还要一种常用的混合：`加法混合(additive blending)`, 这种混合会使绘制区域格外明亮，一般用做爆炸效果或亮光提醒
 
 下图为参数权重因子的系数表和颜色计算例子：
-![src_factor&dst_factor1](/docs/img/QQ20180516-210052@2x.png)
-![src_factor&dst_factor2](/docs/img/QQ20180516-210205@2x.png)
+![src_factor&dst_factor1](../docs/img/QQ20180516-210052@2x.png)
+![src_factor&dst_factor2](../docs/img/QQ20180516-210205@2x.png)
 
 ### 帧缓冲
 
@@ -716,7 +716,7 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 
 
 下图展示帧缓冲区对象结构：
-![fbo struct](/docs/img/QQ20180516-232408@2x.png)
+![fbo struct](../docs/img/QQ20180516-232408@2x.png)
 
 > webgl向帧缓冲区的附件对象写入数据，与在颜色缓冲区或深度缓冲区无异。另外每个附件对象可以有两种类型：`纹理对象`或`渲染缓冲区对象`（如上图）。
 
@@ -752,7 +752,7 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 ### 阴影
 
 这里的阴影实现原理是：将相机放置与光源位置相同的地方，视线与光源一致，比较物体在光源坐标系下的深度值，如果同一个射线下存在多个深度值，除了最小的深度之外其他深度值所对应的点都在阴影当中。如下图：
-![shadow](/docs/img/QQ20180517-102327@2x.png)
+![shadow](../docs/img/QQ20180517-102327@2x.png)
 
 下面使用<b>两对</b>着色器来实现阴影：
 
@@ -768,11 +768,11 @@ color (RGB) = source color × src_factor + destination color × dst_factor
 * 将视点移回正常位置，使用新的一对着色器绘制场景，在顶点着色器中求出每个顶点在光源坐标系下的坐标并（通过内插）传入片元着色器，此时得到片元在光源坐标系下的坐标。阴影映射坐标则可从这个坐标进行上面公式的投影处理和归一化(0,1)可得，又因为阴影映射坐标中的xy分量是当前片元在阴影贴图中对应纹素的纹理坐标，那么可以使用取样器将阴影贴图中的存储了深度值的某分量取出，将这个深度值与阴影映射坐标中的z值做比较，如果后者大于前者则当前片元在阴影当中。
 
 > 在上面的比较过程中，往往要给深度值加上一个偏移量来做调整，如果没有这个偏移，阴影有可能会出现出现马赫带(mach band)现象(斑马纹), 出现马赫带的主要原因是阴影贴图存储的深度数据精度与实际深度缓冲区中的深度精度不匹配造成的。下图是书中解释偏移量的设置原因和计算方法：
-![mach band reason](/docs/img/QQ20180517-133725@2x.png)
-![mach band resolving](/docs/img/QQ20180517-133808@2x.png)
+![mach band reason](../docs/img/QQ20180517-133725@2x.png)
+![mach band resolving](../docs/img/QQ20180517-133808@2x.png)
 
 > 有个问题就是，一旦光源距离比较远就会导致阴影消失，因为gl.FragCoord.z在光源足够远的时候，距离的值太大而无法存储在8位的颜色分量中，解决方案是：使用阴影贴图中的r,g,b,a这四个分量，用4个字节共32(4x8)位来存储z值。解释说明如下图：
-![up color precision](/docs/img/QQ20180517-134933@2x.png)
+![up color precision](../docs/img/QQ20180517-134933@2x.png)
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter10/shadow.html)
 
@@ -862,7 +862,7 @@ MTL材质文件的基本组成：
 4. 解析后的数据载体，负责存储解析后的全部类型数据，提供模型绘制时数据的读取
 
 划分数据层级，根据层级从上往下解析，下图为obj文件中的数据结构, 理解该结构即可理清解析步骤。
-![objdoc](/docs/img/QQ20180517-221421@2x.png)
+![objdoc](../docs/img/QQ20180517-221421@2x.png)
 
 可以直接阅读demo中的解析模型代码来观察整个解析流程
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/WebGLDemo/chapter10/load_obj_model.html)
