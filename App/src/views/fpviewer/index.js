@@ -117,6 +117,9 @@ const resizeWindows = () => {
 	viewMatrix.setPerspective(fov, canvas.width / canvas.height, 0.1, 1000.0);
 	viewMatrix.lookAt(3.0, 3.0, 7.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
 	gl.viewport( 0, 0, canvas.width, canvas.height );
+	
+	document.body.style.width = window.innerWidth + 'px';
+	document.body.style.height = window.innerHeight + 'px';
 }
 
 
