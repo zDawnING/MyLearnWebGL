@@ -67,13 +67,13 @@
 > 其中有两个暂时仅支持本地发布运行，原因是我这边采用的是远程加载模型，但是模型地址是http协议的，与github的https不符，后面我申请https的SSL后再开放线上版
 
 线上传输门：
-> [webgl demo pc&mobile](https://zdawning.github.io/MyLearnWebGL/App/dist/fpviewer_index.html)
-> [threejs demo sky&light&material](https://zdawning.github.io/MyLearnWebGL/App/dist/lm_scene_index.html)
+* [webgl demo pc&mobile](https://zdawning.github.io/MyLearnWebGL/App/dist/fpviewer_index.html)
+* [threejs demo sky&light&material](https://zdawning.github.io/MyLearnWebGL/App/dist/lm_scene_index.html)
 
 本地运行：
-`npm init`
-`npm install`
-`npm run start`
+> `npm init`
+> `npm install`
+> `npm run start`
 
 ### 后记
 这些文档是让自己对知识点的回顾，在图形学的道路上只有不断地拓宽视野并逐一思考，将消化过的知识以文字的形式沉淀下来，才有更深层次的认识。其次，分享知识其实也是一大乐事233333
