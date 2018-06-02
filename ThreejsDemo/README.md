@@ -191,8 +191,11 @@ initControl() { ... };
 ![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/shader_material.png)
 
 功能点：
+1. 给立方体的不同面设置不同的shader材质
 
 要点：
+1. 注意shader代码的的存储形式，存储方式多样，可自行选择。
+2. 关于uniform数据的设置要注意新版API与旧版的区别，具体在新版API中有较好的指引说明
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter04/shader_material.html)
 
@@ -202,8 +205,12 @@ initControl() { ... };
 ![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/basic_geometry.png)
 
 功能点：
+1. 2D几何体：平面、圆形、自定义线框、圆环
+2. 3D几何体：立方体、球体、圆柱体、圆环体、扭结体、多面体
 
 要点：
+1. 这里要注意，新版API中的BufferGeometry几何对象与普通差别在于将各种顶点，颜色，法线，索引，纹理坐标，attribute属性等一次提交至GPU, 降低了CPU端数据传递成本。
+2. 提供的几何体比较多，不必要每个都去记忆它们都有哪些参数或是特性，而且API变动较快，可以直接调整参考Demo中的参数来看实际效果，结合API进行设计即可（参数说明已经写在注释当中）。
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter05/basic_geometry.html)
 
@@ -213,8 +220,52 @@ initControl() { ... };
 ![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/advanced_geometry.png)
 
 功能点：
+1. 凸面体（根据点集形成凸包）
+2. 车床体、曲轴体（根据曲线点集包围）
+3. 延展体（构建好二维对象将其拉伸至三维）
+4. 延展管道（按点集中点的顺序来绘制管道）
+5. SVG地址延展体（构建好二维对象将其拉伸至三维）
+6. 自定义几何体（根据数学公式来生成）
+7. 立体字
 
 要点：
+1. 创建曲轴体时，要注意控制样条曲线是以哪个轴为基准的（任意轴），控制的高度和振幅也是绘制合适曲线的重要条件
+2. 创建自定义框自由度很高，但是要注意绘制顺序，下面举例绘制一个脸型的过程：
+```javascript
+/**
+ * 绘制自定义框型几何
+ * @return {[type]} [description]
+ */
+function drawShape(){
+  var shape = new THREE.Shape();
+  // 设置初始绘制位置
+  shape.moveTo(10, 10);
+  // 设置下一个点的位置并连接起点
+  shape.lineTo(10, 40);
+  // 紧接着绘制一条贝塞尔曲线(分三个点，两个定端点和终点，具体参考实际绘制方式)
+  shape.bezierCurveTo(15,25, 25,25, 30,40);
+  // 接下来根据提供的点集绘制一条光滑的曲线, 参数数组类型为vec2
+  shape.splineThru([new THREE.Vector2( 32, 30 ), new THREE.Vector2( 28, 20 ), new THREE.Vector2( 30, 10 )]);
+  // 最后用二次曲线封闭这个图形(起始点，定端点，具体参考实际绘制方式)
+  shape.quadraticCurveTo(20,15, 10,10);
+  // 另外给这个图形添加内部轨迹, 图案中的其中一只眼睛
+  var hole1 = new THREE.Path();
+  // 设置椭圆（椭圆中心，x、y轴的半径，开始、结束角度，是否顺时针(默认false,即逆时针）
+  hole1.absellipse(16,24, 2,3, 0,2*Math.PI, true);
+  // 将轨迹设置为之前的线框的内部线框
+  shape.holes.push(hole1);
+  // 创建另一只眼睛
+  var hole2 = new THREE.Path();
+  hole2.absellipse(23,24, 2,3, 0,2*Math.PI, true);
+  shape.holes.push(hole2);
+  // 创建嘴
+  var hole3 = new THREE.Path();
+  // 设置圆弧（圆弧中心，半径，开始、结束角度，是否顺时针默认false）
+  hole3.absarc(20,16, 2, 0,Math.PI, true);
+  shape.holes.push(hole3);
+  return shape;
+}
+```
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter05/advanced_geometry.html)
 
@@ -224,8 +275,14 @@ initControl() { ... };
 ![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/operate_combine_mesh.png)
 
 功能点：
+1. 使用多种基础网格进行合并成各种有趣的网格对象。(因为可以直接导出对象，可以存储成对象直接使用)
+2. subtract：几何体交叠
+3. intersect：几何体的交集
+4. union：几何体联合
 
 要点：
+1. 执行网格组合，有一个重要步骤是：这三个函数在计算时使用的是网格的绝对位置，应用网格组合时应确保：当前各个网格是没有经过多种材质组合的。这样才能确保组合出来的结果是正确的
+2. union方法并不好用，因为Threejs本身就有提供这个功能，THREE.GeometryUtils.merge,且性能更好
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter05/operate_combine_mesh.html)
 
@@ -235,8 +292,123 @@ initControl() { ... };
 ![screenshot](http://ovwfvn3zo.bkt.clouddn.com/threejs_screenshot/basic_particle.png)
 
 功能点：
+1. 点云
+2. 多重点云
+2. 点精灵
+3. 根据几何对象绘制点云
 
 要点：
+1. 使用画布创建自定义纹理中，这里有canvas的渐变对象使用：
+```javascript
+/**
+ * 使用画布生成自定义纹理对象
+ * @return {[type]} [description]
+ */
+function generateCustomTexture(){
+  // 创建画布
+  var canvas = document.createElement('canvas');
+  canvas.width = 16;
+  canvas.height = 16;
+  // 获取上下文
+  var context = canvas.getContext('2d');
+  // 获取渐变处理对象
+  // 参数：
+  // x0	渐变的开始圆的 x 坐标
+  // y0	渐变的开始圆的 y 坐标
+  // r0	开始圆的半径
+  // x1	渐变的结束圆的 x 坐标
+  // y1	渐变的结束圆的 y 坐标
+  // r1	结束圆的半径
+  var gradient = context.createRadialGradient(
+    canvas.width / 2, 
+    canvas.height / 2, 
+    0, 
+    canvas.width / 2, 
+    canvas.height / 2, 
+    canvas.width / 2
+  );
+  // 参数：
+  // stop 介于 0.0 与 1.0 之间的值，表示渐变中开始与结束之间的位置。
+  // color 在结束位置显示的 CSS 颜色值
+  gradient.addColorStop(0, 'rgba(255,255,255,1)');
+  gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+  gradient.addColorStop(0.4, 'rgba(0,0,64,1)');
+  gradient.addColorStop(1, 'rgba(0,0,0,1)');
+  // 设置填充绘画的模式 context.fillStyle=color|gradient|pattern;
+  context.fillStyle = gradient;
+  // 绘制已填充绘画的矩形，x,y(矩形左上角)  width,height
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  // 创建纹理对象
+  var texture = new THREE.Texture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
+```
+2. 创建点精灵/多个点云系统时，要注意一些处理上的细节问题：
+```javascript
+/**
+ * 创建精灵
+ * @return {[type]} [description]
+ */
+function createSprite(options, spriteNum){
+  // 补充配置
+  options.map = getTexture(); //填充纹理，这里每次都要重新获取纹理对象
+  // 创建精灵材质
+  var material = new THREE.SpriteMaterial(options);
+  // 纹理对象中提供的是精灵图，根据spriteNum来选取正确的显示位置
+  material.map.offset = new THREE.Vector2(0.2 * spriteNum, 0); // offset决定纹理在x、y轴上的偏移量
+  // 仅设置偏移是不够的，图片会因默认填充方式而压缩在一起
+  material.map.repeat = new THREE.Vector2(1/5, 1); // 纹理填充方式，即放大x轴纹理，让其只显示1/5
+  material.depthTest = false; // 不受深度测试的影响
+  material.blending = THREE.AdditiveBlending; // 启用混合
+
+  var sprite = new THREE.Sprite( material );
+  sprite.scale.set(spriteGroupContr.size, spriteGroupContr.size, spriteGroupContr.size);
+  sprite.position.set(
+    Math.random() * spriteGroupContr.range - spriteGroupContr.range / 2,
+    Math.random() * spriteGroupContr.range - spriteGroupContr.range / 2,
+    Math.random() * spriteGroupContr.range - spriteGroupContr.range / 2
+  );
+  return sprite;
+}
+
+/**
+ * 创建多个点云系统
+ * @param  {[type]} options [description]
+ * @param  {[type]} name    [description]
+ * @param  {[type]} texture [description]
+ * @return {[type]}         [description]
+ */
+function createMultiPointCloud(options, name, texture){
+  var geometry = new THREE.Geometry();
+  var color = new THREE.Color(0xFF0000);
+  // 尝试广域的颜色
+  color.setHSL(Math.random() * color.getHSL().h, Math.random() * color.getHSL().s, Math.random() * color.getHSL().l);
+  // 补充新的材质配置
+  options.map = texture; // 填充纹理
+  options.blending = THREE.AdditiveBlending; // 配置融合模式
+  options.depthWrite = false; // 点云是否影响深度缓冲，这样就可以防止点云中的点对象相互干预
+  // 创建材质
+  var material = new THREE.PointCloudMaterial(options);
+  for (var i = 0; i < 1500; i++) {
+    var point = new THREE.Vector3(
+        Math.random() * multiPointCloudContr.range - multiPointCloudContr.range / 2,
+        Math.random() * multiPointCloudContr.range - multiPointCloudContr.range / 2,
+        Math.random() * multiPointCloudContr.range - multiPointCloudContr.range / 2,
+      );
+    // 设置各个方向运动点的运动速率
+    point.velocityY = 0.1 + Math.random() / 5;
+    point.velocityX = (Math.random() - 0.5) / 3;
+    point.velocityZ = (Math.random() - 0.5) / 3;
+    geometry.vertices.push(point);
+  }
+  // 创建点云系统
+  var pointSys = new THREE.PointCloud( geometry, material );
+  pointSys.name = name; // 设置名字
+  pointSys.sortParticles = true; // 重新排序点对象可以较好地防止对象叠加的深度冲突问题
+  return pointSys;
+}
+```
 
 完整的参考Demo: [example](https://zdawning.github.io/MyLearnWebGL/ThreejsDemo/chapter06/basic_particle.html)
 
