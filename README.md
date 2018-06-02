@@ -4,7 +4,7 @@
 > 传送门：[OpenGL Learning](https://github.com/zDawnING/MyLearnOpenGL)
 
 ### Threejs学习文档指引：
-> 传送门：[Threejs Learning](/ThreejsDemo)
+> 传送门：[Threejs Learning](/MyLearnWebGL/ThreejsDemo)
 
 > 目录：
 1. Threejs开发的基本流程
@@ -40,7 +40,7 @@
 * 基础物理引擎应用
 
 ### WebGL学习文档指引：
-> 传送门：[WebGL Learning](/WebGLDemo)
+> 传送门：[WebGL Learning](/MyLearnWebGL/WebGLDemo)
 
 > 目录：
 1. WebGL开发的基本流程
