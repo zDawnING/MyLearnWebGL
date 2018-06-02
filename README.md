@@ -72,7 +72,9 @@
 
 本地运行：
 > `npm init`
+
 > `npm install`
+
 > `npm run start`
 
 ### 后记
