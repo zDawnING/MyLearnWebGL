@@ -155,4 +155,15 @@ export const loadBumpSkinModel = (path, { texturePath, color, specular, shinines
 	})
 }
 
+export const loadBlendingPlane = (texturePath, blendType) => {
+	let geometry = new THREE.PlaneBufferGeometry(20, 20);
+	let texture = new THREE.TextureLoader().load(texturePath);
+	let material = new THREE.MeshBasicMaterial( {
+		map: texture,
+		transparent: true,
+		blending: blendType
+	} );
+	return new THREE.Mesh(geometry, material);
+}
+
 

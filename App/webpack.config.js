@@ -36,6 +36,12 @@ let entries = [
     title: 'Preview Objects',
     type: TYPE.THREEJS,
     path: './src/preview_index.js'
+  },
+  {
+    name: 'ar_scene',
+    title: 'AR Scene',
+    type: TYPE.THREEJS,
+    path: './src/ar_scene_index.js'
   }
 ];
 // 初始化
@@ -167,6 +173,7 @@ module.exports = {
       lm_scene: path.resolve(__dirname, 'src/views/lm_scene/'),
       mmd: path.resolve(__dirname, 'src/views/mmd/'),
       preview: path.resolve(__dirname, 'src/views/preview/'),
+      ar_scene: path.resolve(__dirname, 'src/views/ar_scene/'),
 		}
 	}
 }

@@ -31,11 +31,14 @@ let controls,
 		sphereByPlanesContr,
 		cubeByLinesContr,
 		ctmContr,
-		bumpSkinContr;
+		bumpSkinContr,
+		blendContr;
 
 let worldAxes;
 
 let orbitControls;
+
+const BLEND_TYPE = [ "NoBlending", "NormalBlending", "AdditiveBlending", "SubtractiveBlending", "MultiplyBlending" ];
 
 /**
  * 初始化控制器
@@ -81,6 +84,7 @@ const initControler = () => {
 			faceCtmModel.material.needsUpdate = true;
 		},
 		loadFaceModel () {
+			removeAllMesh()
 			new Promise(function(resolve, reject){
 				Toast.load('model is loading', true);
 				loadCtmModel( "http://ovwfvn3zo.bkt.clouddn.com/WaltHead.ctm", {
@@ -110,6 +114,7 @@ const initControler = () => {
 			faceBumpModel.material.needsUpdate = true;
 		},
 		loadFaceBumpModel () {
+			removeAllMesh()
 			new Promise(function(resolve, reject){
 				Toast.load('model is loading', true);
 				loadBumpSkinModel( "http://ovwfvn3zo.bkt.clouddn.com/LeePerrySmith.json", {
@@ -126,6 +131,12 @@ const initControler = () => {
 				// 关闭加载提示
 				Toast.closeAll();
 			})
+		}
+	}
+	blendContr = {
+		textureType: 'NoBlending',
+		switchBlending () {
+			
 		}
 	}
 
@@ -161,6 +172,9 @@ const initControler = () => {
 	bumpSkinFolder.addColor(bumpSkinContr, 'specular').onChange(bumpSkinContr.updateMaterial);
 	bumpSkinFolder.add(bumpSkinContr, 'shininess', 1, 100).onChange(bumpSkinContr.updateMaterial);
 	bumpSkinFolder.add(bumpSkinContr, 'bumpScale', 0, 60).onChange(bumpSkinContr.updateMaterial);
+
+	let blendFolder = gui.addFolder("Blending");
+	blendFolder.add(blendContr, 'loadTexture');
 
 }
 
