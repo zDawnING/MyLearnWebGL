@@ -33,17 +33,32 @@
 
 			if(window.DeviceOrientationEvent) {
 				window.addEventListener('deviceorientation', function(event) {
-					console.log(event)
+					alert(event)
 					var a = document.getElementById('alpha'),           
 							b = document.getElementById('beta'),           
-							g = document.getElementById('gamma'),           
-							alpha = event.alpha,           
-							beta = event.beta,               
-							gamma = event.gamma;
+							g = document.getElementById('gamma');         
 
-							document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
-							document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
-							document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
+					// 判断是否有方向webkit
+	        if(event.webkitCompassHeading) {
+	          alpha = -event.webkitCompassHeading; // iOS 裝置必須使用 event.webkitCompassHeading
+	          // compass.style.WebkitTransform = 'rotate(-' + alpha + 'deg)';
+	          // show.innerHTML = alpha;
+	        }
+	        else {
+	          alpha = event.alpha;
+	          if(!window.chrome) {
+	            alpha = alpha - 270;
+	          }
+	        }
+
+	        beta = event.beta;      
+					gamma = event.gamma;
+
+					document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
+					document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
+					document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
+
+					document.querySelector('[camera]').setAttibute('rotation', '0 ' + alpha + ' 0')
 							// a.innerHTML = Math.round(alpha);   
 							// b.innerHTML = Math.round(beta);   
 							// g.innerHTML = Math.round(gamma);     
@@ -63,6 +78,8 @@
     	<a-text text1 position="0 2 -4" value="alpha"></a-text>
     	<a-text text2 position="-1 2 -4" value="beta"></a-text>
     	<a-text text3 position="1 2 -4" value="gamma"></a-text>
+
+    	<a-entity camera="active: true" position="0 2 0" look-controls rotation="0 0 0"></a-entity>
 
 
     </a-scene>
