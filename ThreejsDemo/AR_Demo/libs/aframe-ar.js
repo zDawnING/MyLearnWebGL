@@ -1227,7 +1227,7 @@ var Qb=[Ik,Zh,_h,Qj,Qi,Pi,Ri,Ag,sg,qg,rg,yg,kh,jh,Oi,Mj];var Rb=[Jk,ki,ji,gi];va
 						onError('Failed to get camera facing the wanted direction');
 					} else {
 						if (navigator.getUserMedia) {
-							hdConstraints.video.optional = [{'sourceId': sources[1].id}];
+							// hdConstraints.video.optional = [{'sourceId': sources[1].id}];
 							navigator.getUserMedia(hdConstraints, success, onError);
 						} else {
 							onError('navigator.getUserMedia is not supported on your browser');

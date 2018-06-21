@@ -5,7 +5,8 @@
 
     <script src="libs/vconsole.min.js"></script>
     <script type="text/javascript">
-    	var vConsole = new VConsole();
+			var vConsole = new VConsole();
+    	
    //  	AFRAME.registerComponent('text1', {
 			//   schema: {type: 'string'},
 			//   init: function () {
@@ -43,15 +44,19 @@
 
 					// 判断是否有方向webkit
 	        if(event.webkitCompassHeading) {
-	        	alert(JSON.stringify(event))
-	          alpha = -event.webkitCompassHeading; // iOS 裝置必須使用 event.webkitCompassHeading
+	        	// alert(JSON.stringify(event))
+	        	console.log(event)
+	        	console.log()
+	          alpha = - event.webkitCompassHeading; // iOS 裝置必須使用 event.webkitCompassHeading
 	          // compass.style.WebkitTransform = 'rotate(-' + alpha + 'deg)';
+	          console.log('IOS:',alpha)
 	          // show.innerHTML = alpha;
 	        } else {
-	        	alert()
 	          alpha = event.alpha;
+	          console.log('no chrome:',alpha)
 	          if(!window.chrome) {
 	            alpha = alpha - 270;
+	            console.log('is chrome core', alpha)
 	          }
 	        }
 
@@ -70,6 +75,8 @@
 			}else{     
 				alert('浏览器不支持陀螺仪'); 
 			}
+
+
     </script>
 
   </head>
@@ -87,5 +94,11 @@
     	<a-entity camera="active: true" position="0 2 0" look-controls rotation="0 0 0"></a-entity>
 
     </a-scene>
+
+    <!-- <script type="text/javascript">
+    	window.onload = function(){
+    		var vConsole = new VConsole();
+    	}
+    </script> -->
   </body>
 </html>
