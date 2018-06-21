@@ -5,8 +5,9 @@
 
     <script src="libs/vconsole.min.js"></script>
     <script type="text/javascript">
-			var vConsole = new VConsole();
-    	
+			// var vConsole = new VConsole();
+			// 
+    	ARController.getUserMediaARController({facingMode: 'environment'})
    //  	AFRAME.registerComponent('text1', {
 			//   schema: {type: 'string'},
 			//   init: function () {
@@ -46,7 +47,6 @@
 	        if(event.webkitCompassHeading) {
 	        	// alert(JSON.stringify(event))
 	        	console.log(event)
-	        	console.log()
 	          alpha = - event.webkitCompassHeading; // iOS 裝置必須使用 event.webkitCompassHeading
 	          // compass.style.WebkitTransform = 'rotate(-' + alpha + 'deg)';
 	          console.log('IOS:',alpha)
@@ -67,10 +67,10 @@
 					document.querySelector('[text2]').setAttribute('value', 'beta:' + Math.round(beta))
 					document.querySelector('[text3]').setAttribute('value', 'gamma:' + Math.round(gamma))
 
-					document.querySelector('[camera]').setAttibute('rotation', '0 ' + Math(alpha) + ' 0')
-							// a.innerHTML = Math.round(alpha);   
-							// b.innerHTML = Math.round(beta);   
-							// g.innerHTML = Math.round(gamma);     
+					setTimeout(function(){
+						document.querySelector('[camera]').setAttibute('rotation', '0 ' + Math(alpha) + ' 0')
+					}, 10000)
+							  
 				}, false); 
 			}else{     
 				alert('浏览器不支持陀螺仪'); 
