@@ -1,21 +1,76 @@
 <html>
   <head>
     <script src="libs/aframe-v0.8.2.js"></script>
-    <script src="libs/aframe-ar.js"></script>
-
+		<script src="libs/webrtc.js"></script>
     <script src="libs/vconsole.min.js"></script>
     <script type="text/javascript">
-			var vConsole = new VConsole();
+			// var vConsole = new VConsole();
+			// 
+			
+			var constraints = {
+	    	audio: false,
+	  		video: true
+	    }
+
+	    var video;
+
+			/**
+	     * 创建webRTC视频流
+	     * @return {[type]} [description]
+	     */
+	    function createWebRTC(){
+	    	video = document.getElementById("penguin-sledding");
+	    	video.width = window.innerWidth;
+	    	video.height = window.innerHeight;
+	    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).catch(webRTChandleError);
+	    }
+	    /**
+	     * 成功创建视频流的回调，并调用生成视频纹理
+	     * @param  {[type]} stream [description]
+	     * @return {[type]}        [description]
+	     */
+	    function webRTChandleSuccess(stream){
+	    	var videoTrack = stream.getVideoTracks();
+	    	stream.oninative = function(){
+	    		console.log('Stream inactive');
+	    	}
+	    	
+	    	video.src = window.URL.createObjectURL( stream );
+	    	video.play()
+	    }
+	    /**
+	     * 错误回调
+	     * @param  {[type]} error [description]
+	     * @return {[type]}       [description]
+	     */
+	    function webRTChandleError(error){
+	    	if (error.name === 'ConstraintNotSatisfiedError') {
+			    errorMsg('The resolution ' + constraints.video.width.exact + 'x' +
+			        constraints.video.width.exact + ' px is not supported by your device.');
+			  } else if (error.name === 'PermissionDeniedError') {
+			    errorMsg('Permissions have not been granted to use your camera and ' +
+			      'microphone, you need to allow the page access to your devices in ' +
+			      'order for the demo to work.');
+			  }
+			  errorMsg('getUserMedia error: ' + error.name, error);
+	    }
+
+	    function errorMsg(msg, error){
+	    	if (typeof error !== 'undefined') {
+			    console.error(error);
+			  }
+	    }
+
     	
-   //  	AFRAME.registerComponent('text1', {
-			//   schema: {type: 'string'},
-			//   init: function () {
-			    
-			//   },
-			//   update: function (oldData) {
-			//   	console.log(oldData)
-			//   }
-			// });
+    	AFRAME.registerComponent('webrtc', {
+			  schema: {type: 'string'},
+			  init: function () {
+			    console.log(this.el)
+			    createWebRTC()
+			    // this.el.src = initWebRTC(window.innerWidth, window.innerHeight)
+			  }
+			});
+    	
 			// AFRAME.registerComponent('text2', {
 			//   schema: {type: 'string'},
 			//   init: function () {
@@ -67,14 +122,12 @@
 					document.querySelector('[text2]').setAttribute('value', 'beta:' + Math.round(beta))
 					document.querySelector('[text3]').setAttribute('value', 'gamma:' + Math.round(gamma))
 
-					document.querySelector('[camera]').setAttibute('rotation', '0 ' + Math(alpha) + ' 0')
-							// a.innerHTML = Math.round(alpha);   
-							// b.innerHTML = Math.round(beta);   
-							// g.innerHTML = Math.round(gamma);     
+					document.querySelector('[camera]').setAttibute('rotation', {x: 0, y: Math.round(alpha), z: 0})    
 				}, false); 
 			}else{     
 				alert('浏览器不支持陀螺仪'); 
 			}
+
 
 
     </script>
@@ -91,14 +144,19 @@
     	<a-text text2 position="-1 2 -4" value="beta"></a-text>
     	<a-text text3 position="1 2 -4" value="gamma"></a-text>
 
+    	<a-assets>
+		    <video id="penguin-sledding" autoplay playsinline loop="true"></video>
+		  </a-assets>
+
+		  <!-- Using the asset management system. -->
+		  <a-video webrtc src="#penguin-sledding" width="80" height="45" position="0 0 -20"></a-video>
+
     	<a-entity camera="active: true" position="0 2 0" look-controls rotation="0 0 0"></a-entity>
 
     </a-scene>
 
-    <!-- <script type="text/javascript">
-    	window.onload = function(){
-    		var vConsole = new VConsole();
-    	}
-    </script> -->
+    <script type="text/javascript">
+    	
+    </script>
   </body>
 </html>
