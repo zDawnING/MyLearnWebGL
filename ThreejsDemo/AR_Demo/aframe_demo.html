@@ -54,18 +54,18 @@
 	        } else {
 	          alpha = event.alpha;
 	          console.log('no chrome:',alpha)
-	          if(!window.chrome) {
-	            alpha = alpha - 270;
-	            console.log('is chrome core', alpha)
-	          }
+	          // if(!window.chrome) {
+	          //   alpha = alpha - 270;
+	          //   console.log('is chrome core', alpha)
+	          // }
 	        }
 
 	        beta = event.beta;      
 					gamma = event.gamma;
 
 					document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
-					document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
-					document.querySelector('[text1]').setAttribute('value', 'alpha:' + Math.round(alpha))
+					document.querySelector('[text2]').setAttribute('value', 'beta:' + Math.round(beta))
+					document.querySelector('[text3]').setAttribute('value', 'gamma:' + Math.round(gamma))
 
 					document.querySelector('[camera]').setAttibute('rotation', '0 ' + Math(alpha) + ' 0')
 							// a.innerHTML = Math.round(alpha);   
