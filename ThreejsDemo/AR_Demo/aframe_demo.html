@@ -2,7 +2,10 @@
   <head>
     <script src="libs/aframe-v0.8.2.js"></script>
     <script src="libs/aframe-ar.js"></script>
+
+    <script src="libs/vconsole.min.js"></script>
     <script type="text/javascript">
+    	var vConsole = new VConsole();
    //  	AFRAME.registerComponent('text1', {
 			//   schema: {type: 'string'},
 			//   init: function () {
@@ -45,6 +48,7 @@
 	          // compass.style.WebkitTransform = 'rotate(-' + alpha + 'deg)';
 	          // show.innerHTML = alpha;
 	        } else {
+	        	alert()
 	          alpha = event.alpha;
 	          if(!window.chrome) {
 	            alpha = alpha - 270;
@@ -67,6 +71,7 @@
 				alert('浏览器不支持陀螺仪'); 
 			}
     </script>
+
   </head>
   <body style='margin : 0px; overflow: hidden;'>
     <a-scene embedded arjs="debugUIEnabled: false;">
