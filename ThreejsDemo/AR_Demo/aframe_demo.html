@@ -54,11 +54,11 @@
 	          // show.innerHTML = alpha;
 	        } else {
 	          alpha = event.alpha;
-	          console.log('no chrome:',alpha)
-	          // if(!window.chrome) {
-	          //   alpha = alpha - 270;
-	          //   console.log('is chrome core', alpha)
-	          // }
+	          console.log('alpha:',alpha)
+	          if(!window.chrome) {
+	            alpha = alpha - 270;
+	            console.log('is chrome core', alpha)
+	          }
 	        }
 
 	        beta = event.beta;      
