@@ -6,12 +6,14 @@
     <script src="libs/aframe-v0.8.2.js"></script>
 		<script src="libs/vconsole.min.js"></script>
 		<script type="text/javascript">
-			var vConsole = new VConsole();
+			// var vConsole = new VConsole();
 
 			var constraints = {
 				audio: false,
 				video: {
-					facingMode: 'environment'
+					width: 2024,
+					height: 1080,
+					facingMode: { exact: "environment" }
 				}
 			}
 
