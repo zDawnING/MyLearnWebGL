@@ -67,7 +67,7 @@
 					document.querySelector('[text3]').setAttribute('value', 'gamma:' + Math.round(gamma))
 
 					setTimeout(function(){
-						document.querySelector('[camera]').setAttibute('rotation', '0 ' + Math.round(alpha) + ' 0')
+						document.getElementById('camera').setAttibute('rotation', '0 ' + Math.round(alpha) + ' 0')
 					}, 10000)
 							  
 				}, false); 
@@ -90,7 +90,7 @@
     	<a-text text2 position="-1 2 -4" value="beta"></a-text>
     	<a-text text3 position="1 2 -4" value="gamma"></a-text>
 
-    	<a-entity camera="active: true" position="0 2 0" look-controls rotation="0 0 0"></a-entity>
+    	<a-entity id="camera" camera="active: true" position="0 2 0" look-controls rotation="0 0 0"></a-entity>
 
     </a-scene>
 

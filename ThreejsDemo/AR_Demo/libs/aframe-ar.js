@@ -1237,9 +1237,7 @@ var Qb=[Ik,Zh,_h,Qj,Qi,Pi,Ri,Ag,sg,qg,rg,yg,kh,jh,Oi,Mj];var Rb=[Jk,ki,ji,gi];va
 				});
 			}
 		} else {
-			if (navigator.getUserMedia) {
-				// navigator.getUserMedia(hdConstraints, success, onError);
-				navigator.mediaDevices.getUserMedia(hdConstraints)
+			navigator.mediaDevices.getUserMedia(hdConstraints)
 .then(function(mediaStream) {
   video.srcObject = mediaStream;
   video.onloadedmetadata = function(e) {
@@ -1247,7 +1245,11 @@ var Qb=[Ik,Zh,_h,Qj,Qi,Pi,Ri,Ag,sg,qg,rg,yg,kh,jh,Oi,Mj];var Rb=[Jk,ki,ji,gi];va
     return video;
   };
 })
-.catch(function(err) { console.log(err.name + ": " + err.message); }); // always check for errors at the end.
+.catch(function(err) { console.log(err.name + ": " + err.message); });
+			if (navigator.getUserMedia) {
+
+				// navigator.getUserMedia(hdConstraints, success, onError);
+				 // always check for errors at the end.
 			} else {
 				onError('navigator.getUserMedia is not supported on your browser');
 			}
