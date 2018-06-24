@@ -6,7 +6,7 @@
 			var vConsole = new VConsole();
 
 			var constraints = {
-				audio: false,
+				audio: true,
 				video: {
 					facingMode: { exact: "environment" }
 				}
@@ -17,7 +17,7 @@
 	     * @return {[type]} [description]
 	     */
 	    function createWebRTC(){
-	    	video = document.getElementById("video-output");
+	    	
 	    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).catch(webRTChandleError);
 	    }
 	    /**
@@ -26,6 +26,7 @@
 	     * @return {[type]}        [description]
 	     */
 	    function webRTChandleSuccess(stream){
+	    	video = document.getElementById("video-output");
 	    	var videoTrack = stream.getVideoTracks();
 	    	stream.oninative = function(){
 	    		console.log('Stream inactive');
