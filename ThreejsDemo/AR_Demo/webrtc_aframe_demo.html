@@ -1,0 +1,74 @@
+<html>
+  <head>
+    <script src="libs/aframe-v0.8.2.js"></script>
+		<script src="libs/vconsole.min.js"></script>
+		<script type="text/javascript">
+			var vConsole = new VConsole();
+
+			var constraints = {
+				audio: false,
+				video: {
+					width: 1024,
+					height: 720,
+					facingMode: { exact: "environment" }
+				}
+			}
+
+			/**
+	     * 创建webRTC视频流
+	     * @return {[type]} [description]
+	     */
+	    function createWebRTC(){
+	    	video = document.getElementById("video-output");
+	    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).catch(webRTChandleError);
+	    }
+	    /**
+	     * 成功创建视频流的回调，并调用生成视频纹理
+	     * @param  {[type]} stream [description]
+	     * @return {[type]}        [description]
+	     */
+	    function webRTChandleSuccess(stream){
+	    	var videoTrack = stream.getVideoTracks();
+	    	stream.oninative = function(){
+	    		console.log('Stream inactive');
+	    	}
+	    	video.srcObject = stream;
+	    }
+	    /**
+	     * 错误回调
+	     * @param  {[type]} error [description]
+	     * @return {[type]}       [description]
+	     */
+	    function webRTChandleError(error){
+	    	if (error.name === 'ConstraintNotSatisfiedError') {
+			    errorMsg('The resolution ' + constraints.video.width.exact + 'x' +
+			        constraints.video.width.exact + ' px is not supported by your device.');
+			  } else if (error.name === 'PermissionDeniedError') {
+			    errorMsg('Permissions have not been granted to use your camera and ' +
+			      'microphone, you need to allow the page access to your devices in ' +
+			      'order for the demo to work.');
+			  }
+			  errorMsg('getUserMedia error: ' + error.name, error);
+	    }
+	    /**
+	     * 错误信息打印
+	     * @param  {[type]} msg   [description]
+	     * @param  {[type]} error [description]
+	     * @return {[type]}       [description]
+	     */
+	    function errorMsg(msg, error){
+	    	if (typeof error !== 'undefined') {
+			    console.error(error);
+			  }
+	    }
+
+	    window.onload = createWebRTC()
+		</script>
+		
+ </script>
+
+  </head>
+  <body style='margin : 0px; overflow: hidden;'>
+		<video id="video-output" autoplay playsinline></video>
+  </body>
+</html>
