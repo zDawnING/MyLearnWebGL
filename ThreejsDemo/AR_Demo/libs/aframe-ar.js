@@ -1200,12 +1200,12 @@ var Qb=[Ik,Zh,_h,Qj,Qi,Pi,Ri,Ag,sg,qg,rg,yg,kh,jh,Oi,Mj];var Rb=[Jk,ki,ji,gi];va
 		var hdConstraints = {
 			audio: false,
 			video: {
-				mandatory: constraints
-				
+				mandatory: constraints,
+				facingMode: { exact: 'environment' }
 		  	}
 		};
 
-		if ( true ) {
+		if ( false ) {
 		// if ( navigator.mediaDevices || window.MediaStreamTrack) {
 			if (navigator.mediaDevices) {
 				navigator.mediaDevices.getUserMedia({
@@ -1238,7 +1238,15 @@ var Qb=[Ik,Zh,_h,Qj,Qi,Pi,Ri,Ag,sg,qg,rg,yg,kh,jh,Oi,Mj];var Rb=[Jk,ki,ji,gi];va
 			}
 		} else {
 			if (navigator.getUserMedia) {
-				navigator.getUserMedia(hdConstraints, success, onError);
+				// navigator.getUserMedia(hdConstraints, success, onError);
+				navigator.mediaDevices.getUserMedia(hdConstraints)
+.then(function(mediaStream) {
+  video.srcObject = mediaStream;
+  video.onloadedmetadata = function(e) {
+    video.play();
+  };
+})
+.catch(function(err) { console.log(err.name + ": " + err.message); }); // always check for errors at the end.
 			} else {
 				onError('navigator.getUserMedia is not supported on your browser');
 			}
