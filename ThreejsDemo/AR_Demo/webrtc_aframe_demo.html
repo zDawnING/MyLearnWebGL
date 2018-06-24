@@ -1,5 +1,8 @@
 <html>
   <head>
+		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
+	  <meta name="mobile-web-app-capable" content="yes">
+
     <script src="libs/aframe-v0.8.2.js"></script>
 		<script src="libs/vconsole.min.js"></script>
 		<script type="text/javascript">
@@ -18,7 +21,12 @@
 	     */
 	    function createWebRTC(){
 	    	
-	    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).catch(webRTChandleError);
+	    	navigator.mediaDevices.getUserMedia({
+					audio: true,
+					video: {
+						facingMode: { exact: "environment" }
+					}
+				}).then(webRTChandleSuccess).catch(webRTChandleError);
 	    }
 	    /**
 	     * 成功创建视频流的回调，并调用生成视频纹理
@@ -64,7 +72,6 @@
 	    window.onload = createWebRTC;
 		</script>
 		
- </script>
 
   </head>
   <body style='margin : 0px; overflow: hidden;'>
