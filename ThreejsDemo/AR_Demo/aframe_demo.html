@@ -43,6 +43,8 @@
 							g = document.getElementById('gamma');         
 
 					// 判断是否有方向webkit
+					// 
+					console.log(event)
 	        if(event.webkitCompassHeading) {
 	        	// alert(JSON.stringify(event))
 	        	console.log(event)
@@ -66,9 +68,9 @@
 					document.querySelector('[text2]').setAttribute('value', 'beta:' + Math.round(beta))
 					document.querySelector('[text3]').setAttribute('value', 'gamma:' + Math.round(gamma))
 
-					setTimeout(function(){
-						document.getElementById('camera').setAttribute('rotation', '0 ' + Math.round(alpha) + ' 0')
-					}, 10000)
+					
+					document.getElementById('camera').setAttribute('rotation', '0 ' + Math.round(alpha) + ' 0')
+					
 							  
 				}, false); 
 			}else{     
