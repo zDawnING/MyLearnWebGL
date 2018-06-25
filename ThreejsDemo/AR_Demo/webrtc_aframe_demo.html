@@ -1,9 +1,10 @@
 <html>
   <head>
-		<!-- <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1"> -->
+		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
 	  <!-- <meta name="mobile-web-app-capable" content="yes"> -->
 
     <!-- <script src="libs/aframe-v0.8.2.js"></script> -->
+    <script src="libs/webrtc.js"></script>
 		<script src="libs/vconsole.min.js"></script>
 		<script type="text/javascript">
 			var vConsole = new VConsole();
@@ -24,19 +25,29 @@
 
 			navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(webRTChandleError)
 
+			var devicesArr = [];
 			function gotDevices(deviceInfos){
 				console.log(deviceInfos)
+				var changeSelect = document.getElementById("changeCamera")
+				var option = document.createElement('option')
 				for (var i = 0; i !== deviceInfos.length; i++) {
 					var deviceInfo = deviceInfos[i]
 					if(deviceInfo.kind == 'videoinput'){
 						console.log(deviceInfo.deviceId)
 						constraints.video.deviceId.exact = deviceInfo.deviceId
+						option.value = deviceInfo.deviceId;
+						option.text = 'camera ' + i+1;
+						changeSelect.appendChild(option);
+						devicesArr.push(deviceInfo.deviceId)
 					}
 				}
-				console.log(constraints)
+				// console.log(constraints)
 			}
 
-
+			function changeCamera() {
+				var changeSelect = document.getElementById("changeCamera")
+				
+			}
 
 			/**
 	     * 创建webRTC视频流
@@ -95,5 +106,7 @@
   </head>
   <body style='margin : 0px; overflow: hidden;'>
 		<video id="video-output" autoplay playsinline></video>
+
+		<select id="changeCamera"></select>
   </body>
 </html>
