@@ -72,9 +72,10 @@
     			// 无效
     			// width: window.innerWidth,
     			// height: window.innerHeight,
-    			// ?
-    			width: { min: window.innerWidth, ideal: window.innerWidth * 2, max: window.innerWidth * 3},
-	   			height: { min: window.innerHeight, ideal: window.innerWidth * 2, max: window.innerHeight * 3},
+    			// 无效
+    			// width: { min: window.innerWidth, ideal: window.innerWidth * 2, max: window.innerWidth * 3},
+	   			// height: { min: window.innerHeight, ideal: window.innerWidth * 2, max: window.innerHeight * 3},
+	   			aspectRatio: aspectRatio,
 			    video: {
 			    	aspectRatio: aspectRatio,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
