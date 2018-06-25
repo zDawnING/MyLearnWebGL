@@ -3,13 +3,26 @@
 		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
 	  <!-- <meta name="mobile-web-app-capable" content="yes"> -->
 
-    <!-- <script src="libs/aframe-v0.8.2.js"></script> -->
+    <script src="libs/aframe-v0.8.2.js"></script>
     <script type="text/javascript" src="libs/webrtc_adpter.js"></script>
 		<script src="libs/vconsole.min.js"></script>
 		
   </head>
   <body style='margin : 0px; overflow: hidden;'>
 		<video id="video-output" autoplay playsinline></video>
+		<a-scene embedded arjs="debugUIEnabled: false;">
+
+    	<!-- <a-box position="0 1 -5" rotation="0 0 0" color="#4CC3D9"></a-box> -->
+
+    	<a-entity geometry="primitive: box;" position="0 1 -5" rotation="0 0 0"></a-entity>
+
+    	<!-- <a-text text1 position="0 2 -4" value="alpha"></a-text>
+    	<a-text text2 position="-1 2 -4" value="beta"></a-text>
+    	<a-text text3 position="1 2 -4" value="gamma"></a-text>
+
+    	<a-entity id="camera" camera="active: true" position="0 2 0" look-controls rotation="0 0 0"></a-entity> -->
+
+    </a-scene>
 		<!-- <select id="changeCamera"></select> -->
 
 		<script type="text/javascript">
@@ -54,9 +67,8 @@
 				var aspectRatio = window.innerWidth/window.innerHeight;
 				console.log(aspectRatio)
 			  var constraints = {
-			  	// width: {ideal: 1080},
-    		// 	height: {ideal: 1920},
-    			
+			  	width: {ideal: 1080},
+    			height: {ideal: 1920},
 			    video: {
 			    	aspectRatio: aspectRatio,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
