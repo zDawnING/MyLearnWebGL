@@ -25,6 +25,7 @@
 	        } else if(window.chrome){
 	        	alpha = event.alpha - 270; 
 						if (alpha < 0) alpha += 360;
+						console.log('chrome alpha:', alpha)
 	        } else {
 	          alpha = event.alpha;
 	          console.log('event alpha:',alpha)
