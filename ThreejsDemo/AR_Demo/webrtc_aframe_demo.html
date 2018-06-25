@@ -11,9 +11,9 @@
 			var constraints = {
 				audio: false,
 				video: {
-					width: { min: 1024, ideal: 1280, max: 1920 },
-    			height: { min: 776, ideal: 720, max: 1080 },
-					facingMode: "environment",
+					// width: { min: 1024, ideal: 1280, max: 1920 },
+    	// 		height: { min: 776, ideal: 720, max: 1080 },
+					
 					deviceId: null
 				}
 			}
@@ -24,6 +24,7 @@
 				for (var i = 0; i !== deviceInfos.length; i++) {
 					var deviceInfo = deviceInfos[i]
 					if(deviceInfos.kind == 'videoinput'){
+						console.log(deviceInfo.deviceId)
 						constraints.video.deviceId = deviceInfo.deviceId
 					}
 				}
