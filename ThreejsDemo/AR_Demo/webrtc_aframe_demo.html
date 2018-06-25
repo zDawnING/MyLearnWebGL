@@ -3,9 +3,15 @@
 		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
 	  <!-- <meta name="mobile-web-app-capable" content="yes"> -->
 
-    <script src="libs/aframe-v0.8.2.js"></script>
-    <script src="libs/webrtc_adpter.js"></script>
+    <!-- <script src="libs/aframe-v0.8.2.js"></script> -->
+    <script type="text/javascript" src="libs/webrtc_adpter.js"></script>
 		<script src="libs/vconsole.min.js"></script>
+		
+  </head>
+  <body style='margin : 0px; overflow: hidden;'>
+		<video id="video-output" autoplay playsinline></video>
+		<!-- <select id="changeCamera"></select> -->
+
 		<script type="text/javascript">
 			var vConsole = new VConsole();
 
@@ -39,7 +45,8 @@
 			// navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
 
 			function gotStream(stream) {
-				console.log("gotStream")
+
+				console.log("gotStream", stream)
 			  window.stream = stream; // make stream available to console
 			  videoElement.srcObject = stream;
 			  // Refresh button list in case labels have become available
@@ -50,6 +57,9 @@
 			  var constraints = {
 			    video: {
 			    	deviceId: videoSource ? {exact: videoSource} : undefined,
+			    	facingMode: { exact: 'environment' },
+				  	width: window.innerWidth,
+				  	height: window.innerHeight,
 			    }
 			  };
 			  navigator.mediaDevices.getUserMedia(constraints).
@@ -63,9 +73,5 @@
 			}
 			
 		</script>
-  </head>
-  <body style='margin : 0px; overflow: hidden;'>
-		<video id="video-output" autoplay playsinline></video>
-		<!-- <select id="changeCamera"></select> -->
   </body>
 </html>
