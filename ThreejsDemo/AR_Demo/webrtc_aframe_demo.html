@@ -54,10 +54,11 @@
 				var aspectRatio = window.innerWidth/window.innerHeight;
 				console.log(aspectRatio)
 			  var constraints = {
-			  	width: window.innerWidth,
-    			height: window.innerHeight,
-    			aspectRatio: aspectRatio,
+			  	// width: {ideal: 1080},
+    		// 	height: {ideal: 1920},
+    			
 			    video: {
+			    	aspectRatio: aspectRatio,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
 			    	facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
 			    }
