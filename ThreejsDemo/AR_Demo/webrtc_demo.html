@@ -19,6 +19,7 @@
 			var videoSelect = document.querySelector('select#videoSource');
 
 			function gotDevices(deviceInfos) {
+				console.log("gotDevices")
 			  // Handles being called several times to update labels. Preserve values.
 			  // var values = selectors.map(function(select) {
 			  //   return select.value;
@@ -51,6 +52,8 @@
 			// navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
 
 			function gotStream(stream) {
+				console.log("gotStream")
+
 			  window.stream = stream; // make stream available to console
 			  videoElement.srcObject = stream;
 			  // Refresh button list in case labels have become available
@@ -58,13 +61,10 @@
 			}
 
 			function start() {
-			  if (window.stream) {
-			    window.stream.getTracks().forEach(function(track) {
-			      track.stop();
-			    });
-			  }
+			  
 			  var videoSource = videoSelect.value;
 			  var constraints = {
+			  	facingMode: { exact: 'environment' },
 			    video: {deviceId: videoSource ? {exact: videoSource} : undefined}
 			  };
 			  navigator.mediaDevices.getUserMedia(constraints).
@@ -74,6 +74,8 @@
 			videoSelect.onchange = start
 
 			start();
+
+
 
 			function handleError(error) {
 			  console.log('navigator.getUserMedia error: ', error);
