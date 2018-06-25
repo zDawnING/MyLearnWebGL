@@ -13,7 +13,6 @@
 				video: {
 					// width: { min: 1024, ideal: 1280, max: 1920 },
     	// 		height: { min: 776, ideal: 720, max: 1080 },
-					
 					deviceId: {
 						exact: undefined
 					}
@@ -30,7 +29,7 @@
 						constraints.video.deviceId.exact = deviceInfo.deviceId
 					}
 				}
-				createWebRTC()
+				
 			}
 
 
@@ -40,8 +39,7 @@
 	     * @return {[type]} [description]
 	     */
 	    function createWebRTC(){
-	    	
-	    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).catch(webRTChandleError);
+	    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).then(gotDevices).catch(webRTChandleError);
 	    }
 	    /**
 	     * 成功创建视频流的回调，并调用生成视频纹理
@@ -55,6 +53,8 @@
 	    		console.log('Stream inactive');
 	    	}
 	    	video.srcObject = stream;
+
+	    	return navigator.mediaDevices.enumerateDevices();
 	    }
 	    /**
 	     * 错误回调
@@ -83,6 +83,8 @@
 			    console.error(error);
 			  }
 	    }
+
+	    window.onload = createWebRTC;
 		</script>
 		
 
