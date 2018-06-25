@@ -27,12 +27,12 @@
 				console.log(deviceInfos)
 				for (var i = 0; i !== deviceInfos.length; i++) {
 					var deviceInfo = deviceInfos[i]
-					if(deviceInfos.kind == 'videoinput'){
+					if(deviceInfo.kind == 'videoinput'){
 						console.log(deviceInfo.deviceId)
 						constraints.video.deviceId.exact = deviceInfo.deviceId
 					}
 				}
-				
+				console.log(constraints)
 			}
 
 
