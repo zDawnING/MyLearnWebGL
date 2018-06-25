@@ -14,10 +14,11 @@
 			// 相机设备id组
 			var cameraDevices = [];
 			// 启用中的设备id
-			var videoSource = null;
+			var videoSource;
 
 
 			function gotDevices(deviceInfos) {
+
 				console.log("gotDevices")
 			  for (var i = 0; i !== deviceInfos.length; ++i) {
 			    var deviceInfo = deviceInfos[i];
@@ -27,6 +28,7 @@
 			      console.log('Some other kind of source/device: ', deviceInfo);
 			    }
 			  }
+			  console.log(cameraDevices)
 			  // 设置默认启用设备
 			  if(cameraDevices.length > 1){
 			  	videoSource = cameraDevices[1]
@@ -46,10 +48,7 @@
 
 			function start() {
 			  var constraints = {
-					audio: false,			  	
 			    video: {
-			    	width: window.innerWidth,
-			  		height: window.innerHeight,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined,
 			    }
 			  };

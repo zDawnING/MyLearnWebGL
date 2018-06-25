@@ -47,10 +47,12 @@
 			function start() {
 			  var videoSource = videoSelect.value;
 			  var constraints = {
-			  	facingMode: { exact: 'environment' },
-			  	width: window.innerWidth,
-			  	height: window.innerHeight,
-			    video: {deviceId: videoSource ? {exact: videoSource} : undefined}
+			    video: {
+			    	deviceId: videoSource ? {exact: videoSource} : undefined,
+			    	facingMode: { exact: 'environment' },
+				  	width: window.innerWidth,
+				  	height: window.innerHeight,
+			    }
 			  };
 			  navigator.mediaDevices.getUserMedia(constraints).
 			      then(gotStream).then(gotDevices).catch(handleError);
