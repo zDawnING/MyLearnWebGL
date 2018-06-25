@@ -22,6 +22,9 @@
 	          // compass.style.WebkitTransform = 'rotate(-' + alpha + 'deg)';
 	          console.log('IOS alpha:',alpha)
 	          // show.innerHTML = alpha;
+	        } else if(window.chrome){
+	        	alpha = event.alpha - 270; 
+						if (alpha < 0) alpha += 360;
 	        } else {
 	          alpha = event.alpha;
 	          console.log('event alpha:',alpha)
