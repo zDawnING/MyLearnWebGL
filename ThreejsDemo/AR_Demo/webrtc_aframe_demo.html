@@ -52,10 +52,11 @@
 				videoElement.width = window.innerWidth;
 				videoElement.height = window.innerHeight;
 				var aspectRatio = window.innerWidth/window.innerHeight;
+				console.log(aspectRatio)
 			  var constraints = {
 			    video: {
-			    	width: window.innerWidth,
-				  	height: window.innerHeight,
+			    	width: { min: window.innerWidth, ideal: window.innerWidth * 2, max: window.innerWidth * 3},
+    				height: { min: window.innerHeight, ideal: window.innerHeight * 2, max: window.innerHeight * 3},
 				  	aspectRatio: aspectRatio,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
 			    	facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
