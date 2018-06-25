@@ -3,110 +3,71 @@
 		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
 	  <!-- <meta name="mobile-web-app-capable" content="yes"> -->
 
-    <!-- <script src="libs/aframe-v0.8.2.js"></script> -->
-    <script src="libs/webrtc.js"></script>
+    <script src="libs/aframe-v0.8.2.js"></script>
+    <script src="libs/webrtc_adpter.js"></script>
 		<script src="libs/vconsole.min.js"></script>
 		<script type="text/javascript">
 			var vConsole = new VConsole();
 
-			var constraints = {
-				audio: false,
-				video: {
-					// width: { min: 1024, ideal: 1280, max: 1920 },
-    	// 		height: { min: 776, ideal: 720, max: 1080 },
-    			width: window.innerWidth,
-    			height: window.innerHeight,
-    			facingMode: { exact: 'environment' },
-					deviceId: {
-						exact: undefined
-					}
-				}
-			}
+			var videoElement = document.querySelector('video');
+			// var videoSelect = document.querySelector('select#videoSource');
+			// 相机设备id组
+			var cameraDevices = [];
+			// 启用中的设备id
+			var videoSource = null;
 
-			navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(webRTChandleError)
 
-			var devicesArr = [];
-			function gotDevices(deviceInfos){
-				console.log(deviceInfos)
-				var changeSelect = document.getElementById("changeCamera")
-				var option = document.createElement('option')
-				for (var i = 0; i !== deviceInfos.length; i++) {
-					var deviceInfo = deviceInfos[i]
-					if(deviceInfo.kind == 'videoinput'){
-						console.log(deviceInfo.deviceId)
-						constraints.video.deviceId.exact = deviceInfo.deviceId
-						option.value = deviceInfo.deviceId;
-						option.text = 'camera ' + i+1;
-						changeSelect.appendChild(option);
-						devicesArr.push(deviceInfo.deviceId)
-					}
-				}
-				// console.log(constraints)
-			}
-
-			function changeCamera() {
-				var changeSelect = document.getElementById("changeCamera")
-				
-			}
-
-			/**
-	     * 创建webRTC视频流
-	     * @return {[type]} [description]
-	     */
-	    function createWebRTC(){
-	    	navigator.mediaDevices.getUserMedia(constraints).then(webRTChandleSuccess).then(gotDevices).catch(webRTChandleError);
-	    }
-	    /**
-	     * 成功创建视频流的回调，并调用生成视频纹理
-	     * @param  {[type]} stream [description]
-	     * @return {[type]}        [description]
-	     */
-	    function webRTChandleSuccess(stream){
-	    	video = document.getElementById("video-output");
-	    	var videoTrack = stream.getVideoTracks();
-	    	stream.oninative = function(){
-	    		console.log('Stream inactive');
-	    	}
-	    	video.srcObject = stream;
-
-	    	return navigator.mediaDevices.enumerateDevices();
-	    }
-	    /**
-	     * 错误回调
-	     * @param  {[type]} error [description]
-	     * @return {[type]}       [description]
-	     */
-	    function webRTChandleError(error){
-	    	if (error.name === 'ConstraintNotSatisfiedError') {
-			    errorMsg('The resolution ' + constraints.video.width.exact + 'x' +
-			        constraints.video.width.exact + ' px is not supported by your device.');
-			  } else if (error.name === 'PermissionDeniedError') {
-			    errorMsg('Permissions have not been granted to use your camera and ' +
-			      'microphone, you need to allow the page access to your devices in ' +
-			      'order for the demo to work.');
+			function gotDevices(deviceInfos) {
+				console.log("gotDevices")
+			  for (var i = 0; i !== deviceInfos.length; ++i) {
+			    var deviceInfo = deviceInfos[i];
+			    if (deviceInfo.kind === 'videoinput') {
+			      cameraDevices.push(deviceInfo.deviceId)
+			    } else {
+			      console.log('Some other kind of source/device: ', deviceInfo);
+			    }
 			  }
-			  errorMsg('getUserMedia error: ' + error.name, error);
-	    }
-	    /**
-	     * 错误信息打印
-	     * @param  {[type]} msg   [description]
-	     * @param  {[type]} error [description]
-	     * @return {[type]}       [description]
-	     */
-	    function errorMsg(msg, error){
-	    	if (typeof error !== 'undefined') {
-			    console.error(error);
+			  // 设置默认启用设备
+			  if(cameraDevices.length > 1){
+			  	videoSource = cameraDevices[1]
+			  	start()
 			  }
-	    }
+			}
 
-	    window.onload = createWebRTC;
+			// navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
+
+			function gotStream(stream) {
+				console.log("gotStream")
+			  window.stream = stream; // make stream available to console
+			  videoElement.srcObject = stream;
+			  // Refresh button list in case labels have become available
+			  return navigator.mediaDevices.enumerateDevices();
+			}
+
+			function start() {
+			  var constraints = {
+					audio: false,			  	
+			    video: {
+			    	width: window.innerWidth,
+			  		height: window.innerHeight,
+			    	facingMode: { exact: 'environment' },
+			    	deviceId: videoSource ? {exact: videoSource} : undefined,
+			    }
+			  };
+			  navigator.mediaDevices.getUserMedia(constraints).
+			      then(gotStream).then(gotDevices).catch(handleError);
+			}
+
+			start();
+
+			function handleError(error) {
+			  console.log('navigator.getUserMedia error: ', error);
+			}
+			
 		</script>
-		
-
   </head>
   <body style='margin : 0px; overflow: hidden;'>
 		<video id="video-output" autoplay playsinline></video>
-
-		<select id="changeCamera"></select>
+		<!-- <select id="changeCamera"></select> -->
   </body>
 </html>
