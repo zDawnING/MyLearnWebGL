@@ -77,9 +77,9 @@
 	   			// height: { min: window.innerHeight, ideal: window.innerWidth * 2, max: window.innerHeight * 3},
 	   			aspectRatio: aspectRatio,
 			    video: {
-			    	width: { min: window.innerWidth, ideal: window.innerWidth},
-	   				height: { min: window.innerHeight, ideal: window.innerWidth},
-			    	// aspectRatio: aspectRatio,
+			    	// width: { min: window.innerWidth, ideal: window.innerWidth},
+	   				// height: { min: window.innerHeight, ideal: window.innerWidth},
+			    	aspectRatio: aspectRatio,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
 			    	facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
 			    }
