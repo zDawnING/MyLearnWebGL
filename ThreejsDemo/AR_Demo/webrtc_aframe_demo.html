@@ -49,12 +49,14 @@
 
 			function start() {
 				console.log(window.innerWidth, window.innerHeight)
+				videoElement.width = window.innerWidth;
+				videoElement.height = window.innerHeight;
 			  var constraints = {
 			    video: {
+			    	width: window.innerWidth,
+				  	height: window.innerHeight,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
 			    	facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
-				  	width: window.innerWidth,
-				  	height: window.innerHeight,
 			    }
 			  };
 			  navigator.mediaDevices.getUserMedia(constraints).
