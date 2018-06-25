@@ -6,6 +6,12 @@
     <!-- <script src="libs/aframe-v0.8.2.js"></script> -->
     <script type="text/javascript" src="libs/webrtc_adpter.js"></script>
 		<script src="libs/vconsole.min.js"></script>
+		
+  </head>
+  <body style='margin : 0px; overflow: hidden;'>
+		<video id="video-output" autoplay playsinline></video>
+		<select id="videoSource"></select>
+
 		<script type="text/javascript">
 			var vConsole = new VConsole();
 
@@ -65,7 +71,7 @@
 			      then(gotStream).then(gotDevices).catch(handleError);
 			}
 
-			videoSelect.onchange = start;
+			videoSelect.onchange = start
 
 			start();
 
@@ -74,9 +80,5 @@
 			}
 
 		</script>
-  </head>
-  <body style='margin : 0px; overflow: hidden;'>
-		<video id="video-output" autoplay playsinline></video>
-		<select id="videoSource"></select>
   </body>
 </html>
