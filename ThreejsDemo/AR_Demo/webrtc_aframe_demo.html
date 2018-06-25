@@ -40,24 +40,25 @@
 
 			function gotStream(stream) {
 
-				console.log("gotStream", stream)
+				// console.log("gotStream", stream)
 			  window.stream = stream; // make stream available to console
 			  videoElement.srcObject = stream;
 			  // Refresh button list in case labels have become available
-			  return navigator.mediaDevices.enumerateDevices();
+			  // return navigator.mediaDevices.enumerateDevices();
 			}
 
 			function start() {
+				console.log(window.innerWidth, window.innerHeight)
 			  var constraints = {
 			    video: {
-			    	deviceId: videoSource ? {exact: videoSource} : undefined,
-			    	facingMode: { exact: 'environment' },
+			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
+			    	facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
 				  	width: window.innerWidth,
 				  	height: window.innerHeight,
 			    }
 			  };
 			  navigator.mediaDevices.getUserMedia(constraints).
-			      then(gotStream).then(gotDevices).catch(handleError);
+			      then(gotStream).catch(handleError);
 			}
 
 			start();
