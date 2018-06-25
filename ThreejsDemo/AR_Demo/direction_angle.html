@@ -1,0 +1,55 @@
+<html>
+  <head>
+    <script src="libs/vconsole.min.js"></script>
+    <script type="text/javascript">
+			var vConsole = new VConsole();
+			
+
+			if(window.DeviceOrientationEvent) {
+				window.addEventListener('deviceorientation', function(event) {
+					// alert(event)
+					var a = document.getElementById('alpha'),           
+							b = document.getElementById('beta'),           
+							g = document.getElementById('gamma');         
+
+					// 判断是否有方向webkit
+					// 
+					console.log(event)
+	        if(event.webkitCompassHeading) {
+	        	// alert(JSON.stringify(event))
+	        	console.log(event)
+	          alpha = - event.webkitCompassHeading; // iOS 裝置必須使用 event.webkitCompassHeading
+	          // compass.style.WebkitTransform = 'rotate(-' + alpha + 'deg)';
+	          console.log('IOS alpha:',alpha)
+	          // show.innerHTML = alpha;
+	        } else {
+	          alpha = event.alpha;
+	          console.log('event alpha:',alpha)
+	          if(!window.chrome) {
+	            alpha = alpha - 270;
+	            console.log('no chrome core alpha:', alpha)
+	          }
+	        }
+
+	        beta = event.beta;      
+					gamma = event.gamma;
+
+					document.querySelector('#alpha').innerHTML = Math.round(alpha)
+					document.querySelector('#beta').innerHTML = Math.round(beta)
+					document.querySelector('#gamma').innerHTML = Math.round(gamma)
+
+				}, false); 
+			}else{     
+				alert('浏览器不支持陀螺仪'); 
+			}
+    </script>
+
+  </head>
+  <body style='margin : 0px; overflow: hidden;'>
+    
+		<h1 id="alpha" color="red"></h1>
+		<h1 id="beta" color="green"></h1>
+		<h1 id="gamma" color="blue"></h1>
+    
+  </body>
+</html>
