@@ -99,9 +99,9 @@
 
 					var image = new Image();
 					image.src = canvas.toDataURL('image/jpeg', 0.5)
-					location.href = image.src
-					// var imageElement = document.getElementById('screenshot')
-					// imageElement.setAttribute('src', image.src)
+					// location.href = image.src
+					var imageElement = document.getElementById('screenshot')
+					imageElement.setAttribute('src', image.src)
 				}
 			}
 
