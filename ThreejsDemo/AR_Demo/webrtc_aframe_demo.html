@@ -64,7 +64,9 @@
 			}
 
 			function getData(){
+
 			 	console.log(document.getElementsByTagName('video'))
+			 	console.log(document.getElementsByTagName('video')[0].videoWidth, document.getElementsByTagName('video')[0].videoHeight)
 			}
 
 			// navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
@@ -80,6 +82,8 @@
 			  videoElement.srcObject = stream;
 			  // Refresh button list in case labels have become available
 			  // return navigator.mediaDevices.MediaStreamTrack.getConstraints();
+			  // 
+			 	videoElement.onloadeddata = getData;
 			  
 			}
 
@@ -109,7 +113,7 @@
 			    }
 			  };
 			  navigator.mediaDevices.getUserMedia(constraints).
-			      then(gotStream).then(getData).catch(handleError);
+			      then(gotStream).catch(handleError);
 			}
 
 			start();
