@@ -89,9 +89,13 @@
 					var canvas = document.createElement('canvas')
 					canvas.width = video.videoWidth;
 					canvas.height = video.videoHeight;
-					canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+					var canvasContext = canvas.getContext('2d')
+					canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+					var sceneCanvas = document.querySelector('a-scene').components.screenshot.getCanvas('perspective');
+					canvasContext.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
+
 					var image = new Image();
-					image.src = canvas.toDataURL('image/png')
+					image.src = canvas.toDataURL('image/jpeg')
 					location.href = image.src;
 				}
 			}
