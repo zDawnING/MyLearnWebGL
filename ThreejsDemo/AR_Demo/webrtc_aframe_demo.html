@@ -19,6 +19,7 @@
 		</style>
   </head>
   <body style='margin : 0px; overflow: hidden;'>
+  	<img id="screenshot" src="">
   	<div id="video_shot"></div>
 		<video id="video-output" autoplay playsinline style="position: absolute;z-index: -1000"></video>
 		<a-scene embedded>
@@ -34,7 +35,7 @@
     						rotation="0 0 0"></a-entity>
 				<!-- 地球 -->
 	    	<a-entity geometry="primitive: sphere;"
-	    						material="side: double; transparent: true; opacity: 0.3; wireframe: true; wireframeLinewidth: 30;"
+	    						material="side: double; transparent: true; opacity: 1; wireframe: true; wireframeLinewidth: 100;color: red;"
 	    						scale="3000 3000 3000">
 	    	</a-entity>
 
@@ -91,12 +92,16 @@
 					canvas.height = video.videoHeight;
 					var canvasContext = canvas.getContext('2d')
 					canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
+					console.log(document.querySelector('a-scene').components.screenshot)
 					var sceneCanvas = document.querySelector('a-scene').components.screenshot.getCanvas('perspective');
+					console.log(sceneCanvas)
 					canvasContext.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
 					var image = new Image();
 					image.src = canvas.toDataURL('image/jpeg')
-					location.href = image.src;
+					location.href = image.src
+					// var imageElement = document.getElementById('screenshot')
+					// imageElement.setAttribute('src', image.src)
 				}
 			}
 
