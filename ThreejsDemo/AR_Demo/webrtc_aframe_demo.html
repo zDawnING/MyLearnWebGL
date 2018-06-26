@@ -92,13 +92,13 @@
 					canvas.height = video.videoHeight;
 					var canvasContext = canvas.getContext('2d')
 					canvasContext.drawImage(video, 0, 0, canvas.width, canvas.height);
-					console.log(document.querySelector('a-scene').components.screenshot)
+					// console.log(document.querySelector('a-scene').components.screenshot)
 					var sceneCanvas = document.querySelector('a-scene').components.screenshot.getCanvas('perspective');
-					console.log(sceneCanvas)
+					// console.log(sceneCanvas)
 					canvasContext.drawImage(sceneCanvas, 0, 0, canvas.width, canvas.height);
 
 					var image = new Image();
-					image.src = canvas.toDataURL('image/jpeg')
+					image.src = canvas.toDataURL('image/jpeg', 0.5)
 					location.href = image.src
 					// var imageElement = document.getElementById('screenshot')
 					// imageElement.setAttribute('src', image.src)
