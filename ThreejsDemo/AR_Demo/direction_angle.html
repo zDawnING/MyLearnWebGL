@@ -6,6 +6,41 @@
 			
 			console.log(navigator.userAgent)
 
+			function compassHeading(alpha, beta, gamma) {
+				// Convert degrees to radians
+				var alphaRad = alpha * (Math.PI / 180);
+				var betaRad = beta * (Math.PI / 180);
+				var gammaRad = gamma * (Math.PI / 180);
+
+				// Calculate equation components
+				var cA = Math.cos(alphaRad);
+				var sA = Math.sin(alphaRad);
+				var cB = Math.cos(betaRad);
+				var sB = Math.sin(betaRad);
+				var cG = Math.cos(gammaRad);
+				var sG = Math.sin(gammaRad);
+
+				// Calculate A, B, C rotation components
+				var rA = - cA * sG - sA * sB * cG;
+				var rB = - sA * sG + cA * sB * cG;
+				var rC = - cB * cG;
+
+				// Calculate compass heading
+				var compassHeading = Math.atan(rA / rB);
+
+				// Convert from half unit circle to whole unit circle
+				if(rB < 0) {
+					compassHeading += Math.PI;
+				}else if(rA < 0) {
+					compassHeading += 2 * Math.PI;
+				}
+
+				// Convert radians to degrees
+				compassHeading *= 180 / Math.PI;
+
+				return compassHeading;
+			}
+
 			if(window.DeviceOrientationEvent) {
 				window.addEventListener('deviceorientation', function(event) {
 					// alert(event)
@@ -16,10 +51,11 @@
 					// 判断是否有方向webkit
 					// 
 					console.log(event)
+					console.log('is chrome?',window.chrome)
 	        if(event.webkitCompassHeading) {
 	        	// alert(JSON.stringify(event))
 	        	console.log(event)
-	          alpha = - event.webkitCompassHeading; // iOS 裝置必須使用 event.webkitCompassHeading
+	          alpha = 360 - event.webkitCompassHeading; // iOS 裝置必須使用 event.webkitCompassHeading
 	          // compass.style.WebkitTransform = 'rotate(-' + alpha + 'deg)';
 	          console.log('IOS alpha:',alpha)
 	          // show.innerHTML = alpha;
@@ -28,12 +64,8 @@
 						if (alpha < 0) alpha += 360;
 						console.log('chrome alpha:', alpha)
 	        } else {
-	          alpha = event.alpha;
+	          alpha = compassHeading(event.alpha, event.beta, event.gamma);
 	          console.log('event alpha:',alpha)
-	          // if(!window.chrome) {
-	          //   alpha = alpha - 270;
-	          //   console.log('no chrome core alpha:', alpha)
-	          // }
 	          
 	        }
 
@@ -48,6 +80,9 @@
 			}else{     
 				alert('浏览器不支持陀螺仪'); 
 			}
+
+
+
     </script>
 
   </head>
