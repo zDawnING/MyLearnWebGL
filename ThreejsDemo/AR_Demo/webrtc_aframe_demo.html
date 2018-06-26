@@ -15,6 +15,11 @@
 
     	<a-entity geometry="primitive: box;" position="0 1 -5" rotation="0 45 0"></a-entity>
 
+    	<a-entity geometry="primitive: sphere;"
+    						material="side: double; transparent: true; opacity: 0.3; wireframe: true; wireframeLinewidth: 30;"
+    						scale="30 30 30">
+    	</a-entity>
+
     	<!-- <a-text text1 position="0 2 -4" value="alpha"></a-text>
     	<a-text text2 position="-1 2 -4" value="beta"></a-text>
     	<a-text text3 position="1 2 -4" value="gamma"></a-text> -->
@@ -51,12 +56,16 @@
 			// navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
 
 			function gotStream(stream) {
-
-				// console.log("gotStream", stream)
+				let supported = navigator.mediaDevices.getSupportedConstraints();
+				console.log(supported)
+				console.log(stream.getVideoTracks())
+				// console.log("gotStream", MediaStreamTrack.getConstraints())
+				var videoTrack = stream.getVideoTracks()[0]
+				console.log(videoTrack.getConstraints())
 			  window.stream = stream; // make stream available to console
 			  videoElement.srcObject = stream;
 			  // Refresh button list in case labels have become available
-			  // return navigator.mediaDevices.enumerateDevices();
+			  // return navigator.mediaDevices.MediaStreamTrack.getConstraints();
 			}
 
 			function start() {
@@ -75,11 +84,11 @@
     			// 无效
     			// width: { min: window.innerWidth, ideal: window.innerWidth * 2, max: window.innerWidth * 3},
 	   			// height: { min: window.innerHeight, ideal: window.innerWidth * 2, max: window.innerHeight * 3},
-	   			aspectRatio: aspectRatio - 0.1,
+	   			aspectRatio: aspectRatio,
 			    video: {
 			    	// width: { min: window.innerWidth, ideal: window.innerWidth},
 	   				// height: { min: window.innerHeight, ideal: window.innerWidth},
-			    	// aspectRatio: aspectRatio,
+			    	aspectRatio: aspectRatio,
 			    	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
 			    	facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
 			    }
