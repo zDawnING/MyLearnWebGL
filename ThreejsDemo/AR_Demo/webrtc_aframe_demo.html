@@ -3,11 +3,22 @@
 		<meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
 	  <!-- <meta name="mobile-web-app-capable" content="yes"> -->
     <script src="libs/aframe-v0.8.2.js"></script>
-    <script type="text/javascript" src="libs/webrtc_adpter.js"></script>
+    
 		<script src="libs/vconsole.min.js"></script>
-		
+		<style type="text/css">
+			#video_shot{
+				position: fixed;
+				bottom: 10px;
+				left: 45%;
+				width: 50px;
+				height: 50px;
+				border-radius: 50px;
+				background: red;
+			}
+		</style>
   </head>
   <body style='margin : 0px; overflow: hidden;'>
+  	<div id="video_shot"></div>
 		<video id="video-output" autoplay playsinline style="position: absolute;z-index: -1000"></video>
 		<a-scene embedded>
 
@@ -38,7 +49,7 @@
 
     </a-scene>
 		<!-- <select id="changeCamera"></select> -->
-
+		<script type="text/javascript" src="libs/webrtc_adpter.js"></script>
 		<script type="text/javascript">
 			var vConsole = new VConsole();
 
@@ -67,6 +78,21 @@
 
 			 	console.log(document.getElementsByTagName('video'))
 			 	console.log(document.getElementsByTagName('video')[0].videoWidth, document.getElementsByTagName('video')[0].videoHeight)
+
+			 	document.getElementById('video_shot').addEventListener('click', getScreenShot);
+			}
+
+			function getScreenShot(){
+				var video = document.getElementById('video-output')
+				if(video.videoWidth > 0 && video.videoHeight){
+					var canvas = document.createElement('canvas')
+					canvas.width = video.videoWidth;
+					canvas.height = video.videoHeight;
+					canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+					var image = new Image();
+					image.src = canvas.toDataURL('image/png')
+					window.location.href = image.src;
+				}
 			}
 
 			// navigator.mediaDevices.enumerateDevices().then(gotDevices).catch(handleError);
@@ -123,5 +149,6 @@
 			}
 			
 		</script>
+		
   </body>
 </html>
