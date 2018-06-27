@@ -91,7 +91,7 @@
 			 	console.log(video.videoWidth, video.videoHeight)
 			 	console.log(video.videoHeight, window.innerHeight)
 			 	console.log(window.innerWidth/window.innerHeight)
-			 	if((video.videoWidth/video.videoHeight) < (window.innerWidth/window.innerHeight)){
+			 	if((video.videoWidth/video.videoHeight) > (window.innerWidth/window.innerHeight)){
 					var aspectRatio = video.videoWidth/video.videoHeight
 					// 重新计算video
 					var newH = window.innerHeight;
