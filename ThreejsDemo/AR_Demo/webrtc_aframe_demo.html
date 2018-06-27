@@ -82,6 +82,19 @@
 			 	console.log(document.getElementsByTagName('video')[0].videoWidth, document.getElementsByTagName('video')[0].videoHeight)
 
 			 	document.getElementById('video_shot').addEventListener('click', getScreenShot);
+			 	var video = document.getElementById('video-output')
+			 	if(video.videoHeight < window.innerHeight){
+					var aspectRatio = video.videoWidth/video.videoHeight
+					// 重新计算video
+					var newH = (window.innerHeight - video.videoHeight) + video.videoHeight;
+					var newW = aspectRatio * newH;
+
+					var offsetLeft = (newW -window.innerWidth) * 0.5
+
+					video.style.marginLeft = -offsetLeft + 'px'
+					video.style.height = newH + 'px'
+					video.style.width = newW + 'px'
+				}
 			}
 
 			function getScreenShot(){
