@@ -84,6 +84,8 @@
 			 	document.getElementById('video_shot').addEventListener('click', getScreenShot);
 			 	var video = document.getElementById('video-output')
 			 	console.log(video.videoWidth, video.videoHeight)
+			 	console.log(video.videoHeight, window.innerHeight)
+			 	console.log(video.videoHeight < window.innerHeight)
 			 	if(video.videoHeight < window.innerHeight){
 					var aspectRatio = video.videoWidth/video.videoHeight
 					// 重新计算video
