@@ -3,11 +3,11 @@ var THREE = require('three');
 export const createCircle = () => {
 	// 创建圆
 	var circleShape = new THREE.Shape();
-	circleShape.absarc( 0, 0, 10, 0, Math.PI * 2, false );
+	circleShape.absarc( 0, 0, 100, 0, Math.PI * 2, false );
 
 	circleShape.autoClose = true;
 
-	var points = circleShape.getPoints(30);
+	var points = circleShape.getPoints(300);
 	// console.log(points)
 
 	var geometryPoints = new THREE.BufferGeometry().setFromPoints( points );
@@ -17,7 +17,7 @@ export const createCircle = () => {
 }
 
 export const createSphere = () => {
-	let geometry = new THREE.SphereBufferGeometry( 2, 20, 20 );
+	let geometry = new THREE.SphereBufferGeometry( 4, 20, 20 );
 	let material = new THREE.MeshLambertMaterial( {color: 0xFF0000} );
 	return new THREE.Mesh(geometry, material);
 }
@@ -25,12 +25,12 @@ export const createSphere = () => {
 export const createEllipse = () => {
 	var curve = new THREE.EllipseCurve(
 		0, 0,
-		5, 10,
+		50, 100,
 		0, Math.PI * 2,
 		false,
 		0
 		);
-	var points = curve.getPoints(30)
+	var points = curve.getPoints(300)
 	var geometry = new THREE.BufferGeometry().setFromPoints(points)
 	var material = new THREE.LineBasicMaterial( {color: 0xFF0000} )
 	return new THREE.Line( geometry, material )
