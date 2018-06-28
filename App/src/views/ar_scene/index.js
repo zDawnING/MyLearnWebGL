@@ -46,7 +46,7 @@ let vrDisplay;
 let arView;
 let vrControls;
 
-let pcDebug = true;
+let pcDebug = false;
 
 /**
  * 渲染
