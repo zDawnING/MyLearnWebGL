@@ -137,6 +137,9 @@ const initControler = () => {
 		textureType: 'NoBlending',
 		switchBlending () {
 			
+		},
+		loadTexture () {
+			
 		}
 	}
 
