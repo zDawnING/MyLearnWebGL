@@ -8,10 +8,10 @@ export const createCircle = () => {
 	circleShape.autoClose = true;
 
 	var points = circleShape.getPoints(30);
-	console.log(points)
+	// console.log(points)
 
 	var geometryPoints = new THREE.BufferGeometry().setFromPoints( points );
-	console.log(geometryPoints)
+	// console.log(geometryPoints)
 
 	return new THREE.Line( geometryPoints, new THREE.LineBasicMaterial( { color: 0xf08000, linewidth: 3 } ) );
 }

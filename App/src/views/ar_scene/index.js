@@ -135,12 +135,18 @@ const initScene = async () => {
 	let stats = initStats();
 	// 创建场景
 	scene = new THREE.Scene();
-	// 创建相机
-	camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 2000 );
-	camera.position.x = -20;
-	camera.position.y = 40;
-	camera.position.z = 20;
-	camera.lookAt(scene.position); // 视线指向场景中心
+	
+	if(pcDebug){
+		// 创建相机
+		camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 2000 );
+		camera.position.x = -20;
+		camera.position.y = 40;
+		camera.position.z = 20;
+		camera.lookAt(scene.position); // 视线指向场景中心
+	}else{
+		camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 2000 );
+	}
+
 	// 创建渲染器
 	renderer = new THREE.WebGLRenderer( {alpha: true} )
 	renderer.setPixelRatio( window.devicePixelRatio )

@@ -7,8 +7,5 @@ export const moveSpherePointToPoint = (sphere, newPoint) => {
 		y: newPoint.y,
 		z: newPoint.z
 	}, 1000 )
-	.onUpdate( obj => {
-		console.log(obj)
-	})
 	.start();
 }
