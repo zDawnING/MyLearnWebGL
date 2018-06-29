@@ -1,3 +1,4 @@
+require('com_gl/utils/webrtc_adpter')
 
 export const createVideoElement = () => {
 	let videoElement = document.createElement('video')
