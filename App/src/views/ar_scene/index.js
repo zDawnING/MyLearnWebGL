@@ -104,10 +104,12 @@ const addClickEvent = () => {
  */
 const selectObjectMouseDown = (event)  => {
 	var vector = getWorldCoordinateFromScreen(event);
+	console.log(vector)
 	// 创建射线追踪对象，参数：起始点，方向向量(指向)，最近距离(0)，最远距离(infinity)
 	raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
 	// 射线与场景中的网格对象相交性检测, 开启深层对象检测
 	var intersects = raycaster.intersectObjects(scene.children, true);
+	console.log(intersects)
 	if(intersects.length > 0){
 		// 判断最前面的一个相交对象是否是卫星
 		if(intersects[0].object.name.indexOf("satellite") >= 0){
