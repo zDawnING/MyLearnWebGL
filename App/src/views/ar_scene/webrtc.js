@@ -35,7 +35,7 @@ export const initWebRTC = (element, videoSource) => {
 		height: window.screen.height * window.devicePixelRatio,
     video: {
     	deviceId: videoSource ? {exact: videoSource} : undefined, // 移动端要deviceId和facingMode同时存在
-    	// facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
+    	facingMode: { exact: 'environment' }, // 这个参数在PC端会报错
     }
   };
   navigator.mediaDevices.getUserMedia(constraints).
