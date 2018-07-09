@@ -69,7 +69,7 @@ let skyEffectContr = {
   }
 };
 
-let pcDebug = true;
+let pcDebug = false;
 
 const eventNames = [
 		'touchstart', 'click', 'mousedown'
