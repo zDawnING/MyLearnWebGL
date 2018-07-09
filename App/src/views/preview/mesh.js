@@ -166,4 +166,26 @@ export const loadBlendingPlane = (texturePath, blendType) => {
 	return new THREE.Mesh(geometry, material);
 }
 
+const createCustomTexture = (name) => {
+	// 创建画布
+	let canvas = document.createElement('canvas')
+	canvas.width = 20
+	canvas.height = 18
+	// 获取上下文
+	let context = canvas.getContext('2d')
+	context.font = '15px Arial'
+	context.fillText(name, 4, 0)
+  // 创建纹理对象
+  let texture = new THREE.Texture(canvas)
+  texture.needsUpdate = true
+  return texture
+}
 
+export const createCanvasPlane = () => {
+	let geometry = new THREE.PlaneGeometry(20, 20)
+	let texture = createCustomTexture('Hello')
+	let material = new THREE.MeshBasicMaterial({
+		map: texture
+	})
+	return new THREE.Mesh(geometry, material)
+}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>webgl test</title>
+	<style type="text/css">
+		body{
+			margin: 0;
+			padding: 0;
+		}
+
+		iframe {
+			position: absolute;
+			top: 10px;
+			right: 10px;
+
+			width: 400px;
+			height: 400px;
+		}
+	</style>
+</head>
+<body>
+	<canvas id="example" width="400" height="400">no support canvas</canvas>
+	
+	<script type="text/javascript">
+		function main() {
+			var canvas = document.getElementById("example");
+			if(!canvas){
+				console.log("no read element");
+				return;
+			}
+			var context = canvas.getContext("2d"); // 获取绘图上下文
+			// 获取上下文
+			// context.clearRect(0, 0, canvas.width, canvas.height)
+			// context.font="20px Georgia";
+			// context.fillText("Hello World!",10,50);
+
+			// context.moveTo(8, 8)
+			// var path = new Path2D()
+			// path.arc(15, 25, 15, -1.5, Math.PI, true)
+			// context.strokeStyle = '#0000ff'
+			// context.stroke(path)
+
+			// var img = new Image()
+			// img.src = 'assets/satellite.png'
+			// img.onload = function(){
+			// 	var pattern = context.createPattern(img, 'repeat')
+			//   context.fillStyle = pattern;
+			//   context.fillRect(0,0,64,64);
+			// }
+
+			var img = new Image();
+			img.src = 'https://mdn.mozillademos.org/files/222/Canvas_createpattern.png';
+			img.onload = function() {
+			  context.drawImage(img, 0, 0)
+			};
+
+			// context.fillRect(0, 0, canvas.width, canvas.height)
+		}
+		window.onload = main;
+	</script>
+</body>
+</html>

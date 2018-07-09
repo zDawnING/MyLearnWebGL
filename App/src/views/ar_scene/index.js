@@ -15,7 +15,10 @@ import {
 	createEllipse,
 	createSphere,
 	createCube,
-	createLabel
+	createLabel,
+	createTipPlane,
+	createCustomTexture,
+	createWater
 } from 'ar_scene/mesh'
 import {
 	curveMove
@@ -25,6 +28,14 @@ import {
 	createShotBtn,
 	initWebRTC
 } from 'ar_scene/webrtc'
+import {
+	createDirectionLight, 
+	createSky, 
+	changeSkyEffect, 
+	createLensflare
+} from 'lm_scene/light';
+
+import waterNormalImg from "res_gl/img/waternormals.jpg"
 
 let renderer; // 渲染器
 
@@ -36,7 +47,7 @@ let scene; // 场景对象
 let stats; // 检测动画运行帧频
 let gui; // 控制界面变量的组件
 
-let group1, group2, sphere, line, ellipseLine, cube;
+let group1, group2, sphere, line, ellipseLine, cube, sky, directionalLight, water;
 let cubeLabel, sphereLabel;
 let videoSource;
 
@@ -44,12 +55,21 @@ let worldAxes;
 
 let deviceOriControls, orbitControls;
 
-let vrFrameData;
-let vrDisplay;
-let arView;
-let vrControls;
+const skyDistance = 1000;
+let skyEffectContr = {
+	turbidity: 10,
+	rayleigh: 2,
+	mieCoefficient: 0.005,
+	mieDirectionalG: 0.8,
+	luminance: 1,
+	inclination: 0.49, // elevation / inclination
+	azimuth: 0.25, // Facing front,
+	updateSkyEffect: function(){
+		changeSkyEffect(sky, skyDistance, skyEffectContr);
+  }
+};
 
-let pcDebug = false;
+let pcDebug = true;
 
 const eventNames = [
 		'touchstart', 'click', 'mousedown'
@@ -84,6 +104,7 @@ const addClickEvent = () => {
 	// 		mouseVec2.y = (event.clientY / window.innerHeight) * 2 + 1
 	// 	}, true)
 	// })
+
 	if(pcDebug) {
 		window.addEventListener('click', function(e){
 			selectObjectMouseDown(e)
@@ -96,6 +117,7 @@ const addClickEvent = () => {
 			selectObjectMouseDown(touch)
 		}, false)
 	}
+
 }
 
 /**
@@ -125,6 +147,8 @@ const selectObjectMouseDown = (event)  => {
 	
 }
 
+
+
 /**
  * 获取当前鼠标所在的世界坐标系
  * @param  {[type]} e [description]
@@ -133,6 +157,7 @@ const selectObjectMouseDown = (event)  => {
 const getWorldCoordinateFromScreen  = (e) => {
 	// 获取当前鼠标的屏幕标准化坐标(NDC)
 	var ndcVector = new THREE.Vector3( (e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1, 0.5);
+
 	// 屏幕坐标系转换成世界坐标系
 	var worldVector = ndcVector.unproject(camera);
 	return worldVector;
@@ -158,14 +183,30 @@ const render = () => {
 		updateLabelPosition(sphereLabel, sphere)
 	}
 
+	if(directionalLight.position.y <= -1 ){
+		directionalLight.visible = false
+	}else{
+		directionalLight.visible = true
+	}
+	skyEffectContr.inclination -= 0.0001
+	skyEffectContr.updateSkyEffect()
+
+	directionalLight.position.copy(sky.material.uniforms.sunPosition.value)
+
+	if(water){
+		water.material.uniforms.time.value += 1.0 / 60.0
+		// water.material.needsUpdate = true
+	}
+	
+
 	// 使用帧动画函数
-	requestAnimationFrame(render);
-	renderer.render( scene, camera );
+	requestAnimationFrame(render)
+	renderer.render( scene, camera )
 }
 
 
 const updateLabelPosition = (objLabel, obj) => {
-	objLabel.position.set(obj.position.x - 8, obj.position.y - 8, obj.position.z - 8)
+	objLabel.position.set(obj.position.x, obj.position.y  + 8, obj.position.z)
 	objLabel.lookAt(camera.position)
 }
 
@@ -224,6 +265,7 @@ const initScene = async () => {
 		camera.lookAt(scene.position); // 视线指向场景中心
 	}else{
 		camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 2000 );
+		camera.position.y = 20
 	}
 
 	// 创建渲染器
@@ -250,17 +292,18 @@ const initScene = async () => {
 
 	// 展示辅助观察的世界坐标系
   worldAxes = new THREE.AxesHelper(20);
-  // worldAxes.visible = false;
+  worldAxes.visible = false;
   scene.add(worldAxes);
 
   group1 = new THREE.Group()
   scene.add(group1)
 
   line = createCircle()
-  line.position.set( 0, 0, 0 );
-	line.rotation.set( 0, Math.PI * 0.25, 0 );
+  
 	// line.scale.set( 1, 1, 1 );
 	group1.add( line );
+	group1.position.set( 0, 0, 0 );
+	group1.rotation.set( 0, Math.PI * 0.25, 0 );
 
 	cube = createCube()
 	cube.position.set(
@@ -269,11 +312,14 @@ const initScene = async () => {
 		line.geometry.clone().getAttribute('position').getZ(0)
 		)
 	cube.name = 'satellite1'
-	cubeLabel = createLabel(cube.name, cube.position)
-	cubeLabel.scale.set(4, 4, 4)
+	cube.scale.set(10, 10, 10)
+	cubeLabel = createTipPlane()
+	cubeLabel.scale.set(10, 10, 10)
+	// cubeLabel.position.copy(cube.position)
 	cubeLabel.visible = false
 	line.add(cube)
-	line.add(cubeLabel)
+	group1.add(cubeLabel)
+	createCustomTexture(cubeLabel, cube.name)
 
 	group2 = new THREE.Group()
   scene.add(group2)
@@ -290,15 +336,32 @@ const initScene = async () => {
 		ellipseLine.geometry.clone().getAttribute('position').getZ(0)
 		)
 	sphere.name = 'satellite2'
-	sphereLabel = createLabel(sphere.name, sphere.position)
-	sphereLabel.scale.set(4, 4, 4)
+	cube.scale.set(5, 5, 5)
+	sphereLabel = createTipPlane(sphere.name)
+	sphereLabel.scale.set(5, 5, 5)
+	// sphereLabel.position.copy(sphere.position)
 	sphereLabel.visible = false
 	ellipseLine.add(sphere)
-	ellipseLine.add(sphereLabel)
+	group2.add(sphereLabel)
+	createCustomTexture(sphereLabel, sphere.name)
 
 	curveMove(ellipseLine, sphere, 1000)
 
 	curveMove(line, cube, 700)
+
+	// 添加平行光
+	directionalLight = createDirectionLight();
+	// 添加光晕
+  scene.add(directionalLight);
+
+	// 添加天空
+  sky = createSky(skyDistance, skyEffectContr)
+	scene.add(sky)
+
+	// 添加水面
+	water = createWater(directionalLight)
+	water.rotation.x = - Math.PI * 0.5
+	scene.add( water )
 
   // 关闭加载提示
 	Toast.closeAll();

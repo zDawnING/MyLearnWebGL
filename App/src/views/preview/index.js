@@ -11,7 +11,8 @@ import {
 	createSphereByPlanes,
 	createCubeByLines,
 	loadCtmModel,
-	loadBumpSkinModel
+	loadBumpSkinModel,
+	createCanvasPlane
 } from 'preview/mesh';
 import { createDirectLight } from 'preview/light';
 
@@ -32,7 +33,8 @@ let controls,
 		cubeByLinesContr,
 		ctmContr,
 		bumpSkinContr,
-		blendContr;
+		blendContr,
+		canvasTestContr;
 
 let worldAxes;
 
@@ -139,6 +141,11 @@ const initControler = () => {
 			
 		},
 		loadTexture () {
+			
+		}
+	}
+	canvasTestContr = {
+		loadTestPlane () {
 			
 		}
 	}
