@@ -112,6 +112,36 @@ export const createCubeByLines = (radius, pointNum) => {
 	return new THREE.Line( bufferGeometry, material );
 }
 
+export const createSphereByLine = (radius, pointNum) => {
+	let bufferGeometry = new THREE.BufferGeometry()
+	let material = new THREE.LineBasicMaterial( { vertexColors: THREE.VertexColors } )
+	let positions = []
+	let colors = []
+	for(let i=0, l = pointNum; i < l; i++){
+		// 范围在(-0.5r, 0.5r)
+		let x = Math.random() * radius - radius * 0.5;
+		let y = Math.random() * radius - radius * 0.5;
+		let z = Math.random() * radius - radius * 0.5;
+		// 设置点
+		let currVec3 = new THREE.Vector3( x, y, z )
+		// 计算与原点的距离
+		let distance = currVec3.distanceTo(new THREE.Vector3( 0, 0, 0 ))
+		if(distance > radius * 0.4){
+			positions.push(x, y, z);
+		}
+		// 随机颜色时，将顶点数据范围控制在(0,1)
+		colors.push((x / radius) + 0.5);
+		colors.push((y / radius) + 0.5);
+		colors.push((z / radius) + 0.5);
+	}
+	bufferGeometry.addAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+	bufferGeometry.addAttribute( 'color', new THREE.Float32BufferAttribute( colors, 3 ) );
+	// 默认是不进行计算包围盒，需要显式计算
+	bufferGeometry.computeBoundingBox();
+
+	return new THREE.Line( bufferGeometry, material );
+}
+
 
 /**
  * 加载CTM模型

@@ -16,13 +16,17 @@ import {
 } from 'preview/mesh';
 import { createDirectLight } from 'preview/light';
 
+import { 
+	loadSatelitaModel
+} from 'ar_scene/mesh'
+
 let renderer; // 渲染器
 
 // 定义变量
 let camera; // 相机
 let scene; // 场景对象
 
-let sphereByPlanes, cubeByLines, faceCtmModel, faceBumpModel;
+let sphereByPlanes, cubeByLines, faceCtmModel, faceBumpModel, satelite;
 
 // 辅助组件
 let stats; // 检测动画运行帧频
@@ -34,7 +38,8 @@ let controls,
 		ctmContr,
 		bumpSkinContr,
 		blendContr,
-		canvasTestContr;
+		canvasTestContr,
+		objTestContr;
 
 let worldAxes;
 
@@ -149,6 +154,25 @@ const initControler = () => {
 			
 		}
 	}
+	objTestContr = {
+		loadObj () {
+			removeAllMesh()
+			new Promise(function(resolve, reject){
+				Toast.load('model is loading', true);
+				loadSatelitaModel( 'http://ovwfvn3zo.bkt.clouddn.com/threejs_models/obj/satelite/', resolve, reject);
+			}).then(function(mesh){
+				satelite = mesh
+				satelite.scale.set( 0.01, 0.01, 0.01 );
+				satelite.position.set(0, 0, 0)
+				scene.add(satelite)
+				console.log(satelite)
+				// faceBumpModel.scale.set( 5, 5, 5 );
+				// scene.add(faceBumpModel);
+				// 关闭加载提示
+				Toast.closeAll();
+			})
+		}
+	}
 
 	gui = new dat.GUI();
 	gui.add(controls, 'bgType', ['day', 'night']).onChange(function(e){
@@ -185,6 +209,9 @@ const initControler = () => {
 
 	let blendFolder = gui.addFolder("Blending");
 	blendFolder.add(blendContr, 'loadTexture');
+
+	let objTestFolder = gui.addFolder("OBJ Model")
+	objTestFolder.add(objTestContr, 'loadObj')
 
 }
 
@@ -268,7 +295,7 @@ const initScene = (resolve, reject) => {
 
 	// 展示辅助观察的世界坐标系
   worldAxes = new THREE.AxesHelper(20);
-  worldAxes.visible = false;
+  // worldAxes.visible = false;
   scene.add(worldAxes);
 
  	let light1 = createDirectLight(new THREE.Vector3( -50, 50, 50 ));

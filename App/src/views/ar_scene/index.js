@@ -18,7 +18,9 @@ import {
 	createLabel,
 	createTipPlane,
 	createCustomTexture,
-	createWater
+	createWater,
+	createStar,
+	loadSatelitaModel
 } from 'ar_scene/mesh'
 import {
 	curveMove
@@ -47,8 +49,14 @@ let scene; // 场景对象
 let stats; // 检测动画运行帧频
 let gui; // 控制界面变量的组件
 
-let group1, group2, sphere, line, ellipseLine, cube, sky, directionalLight, water;
+let group1, group2, sphere, line, ellipseLine, cube, sky, directionalLight, water, satelite;
 let cubeLabel, sphereLabel;
+
+// 模型对象
+let satelite1, satelite2;
+let tempObjMesh;
+let line1, line2;
+
 let videoSource;
 
 let worldAxes;
@@ -69,7 +77,14 @@ let skyEffectContr = {
   }
 };
 
-let pcDebug = false;
+
+
+let pcDebug = true;
+
+if(!!navigator.userAgent.match(/AppleWebKit.*Mobile.*/)){
+	pcDebug = false
+}
+
 
 const eventNames = [
 		'touchstart', 'click', 'mousedown'
@@ -211,6 +226,135 @@ const updateLabelPosition = (objLabel, obj) => {
 }
 
 /**
+ * 普通几何体测试
+ * @return {[type]} [description]
+ */
+const testNormalGeom = () => {
+	group1 = new THREE.Group()
+  group1.name = 'group1'
+  scene.add(group1)
+
+  line = createCircle()
+  
+	// line.scale.set( 1, 1, 1 );
+	group1.add( line );
+	group1.position.set( 0, 0, 0 );
+	group1.rotation.set( 0, Math.PI * 0.25, 0 );
+
+	cube = createCube()
+	cube.position.set(
+		line.geometry.clone().getAttribute('position').getX(0),
+		line.geometry.clone().getAttribute('position').getY(0),
+		line.geometry.clone().getAttribute('position').getZ(0)
+		)
+	cube.name = 'satellite1'
+	cube.scale.set(10, 10, 10)
+	cubeLabel = createTipPlane()
+	cubeLabel.scale.set(10, 10, 10)
+	// cubeLabel.position.copy(cube.position)
+	cubeLabel.visible = false
+	line.add(cube)
+	group1.add(cubeLabel)
+	createCustomTexture(cubeLabel, cube.name)
+
+	group2 = new THREE.Group()
+	group2.name = 'group2'
+  scene.add(group2)
+
+	ellipseLine = createEllipse()
+	group2.add(ellipseLine)
+
+	// console.log(ellipseLine.geometry.clone().getAttribute('position').count)
+
+	sphere = createSphere()
+	sphere.position.set(
+		ellipseLine.geometry.clone().getAttribute('position').getX(0),
+		ellipseLine.geometry.clone().getAttribute('position').getY(0),
+		ellipseLine.geometry.clone().getAttribute('position').getZ(0)
+		)
+	sphere.name = 'satellite2'
+	sphere.scale.set(5, 5, 5)
+	sphereLabel = createTipPlane(sphere.name)
+	sphereLabel.scale.set(5, 5, 5)
+	// sphereLabel.position.copy(sphere.position)
+	sphereLabel.visible = false
+	ellipseLine.add(sphere)
+	group2.add(sphereLabel)
+	createCustomTexture(sphereLabel, sphere.name)
+
+	curveMove(ellipseLine, sphere, 1000)
+
+	curveMove(line, cube, 700)
+}
+
+const testSatelite = () => {
+	// 第一组卫星
+	group1 = new THREE.Group()
+  group1.name = 'group1'
+  scene.add(group1)
+  // 创建圆周轨道
+  line1 = createCircle()
+	group1.add( line1 ); // 加入卫星组中
+	group1.position.set( 0, 0, 0 );
+	group1.rotation.set( 0, Math.PI * 0.25, 0 );
+
+	// 第二组卫星
+	group2 = new THREE.Group()
+  group2.name = 'group2'
+  scene.add(group2)
+  // 创建圆周轨道
+  line2 = createCircle()
+	group2.add( line2 ); // 加入卫星组中
+	group2.position.set( 0, 0, 0 );
+	group2.rotation.set( 0, -Math.PI * 0.5, 0 );
+
+	// 加载卫星模型
+	new Promise(function(resolve, reject){
+		Toast.load('model is loading', true);
+		loadSatelitaModel( 'http://ovwfvn3zo.bkt.clouddn.com/threejs_models/obj/satelite/', resolve, reject);
+	}).then(function(mesh){
+		tempObjMesh = mesh
+		// 卫星1
+		satelite1 = tempObjMesh.clone()
+		satelite1.scale.set( 0.05, 0.05, 0.05 );
+		// satelite1.position.set(0, 0, 0)
+		satelite1.rotation.set(0, Math.PI * 0.5, 0)
+		satelite1.name = 'satellite1'
+		scene.add(satelite1)
+
+		satelite1.position.set(
+			line1.geometry.clone().getAttribute('position').getX(0),
+			line1.geometry.clone().getAttribute('position').getY(0),
+			line1.geometry.clone().getAttribute('position').getZ(0)
+			)
+		
+		line1.add(satelite1)
+		curveMove(line1, satelite1, 500)
+
+		// 卫星2
+		satelite2 = tempObjMesh.clone()
+		satelite2.scale.set( 0.05, 0.05, 0.05 );
+		// satelite2.position.set(0, 0, 0)
+		satelite2.rotation.set(0, -Math.PI * 0.2, 0)
+		satelite2.name = 'satellite2'
+		scene.add(satelite2)
+
+		satelite2.position.set(
+			line2.geometry.clone().getAttribute('position').getX(0),
+			line2.geometry.clone().getAttribute('position').getY(0),
+			line2.geometry.clone().getAttribute('position').getZ(0)
+			)
+		
+		line2.add(satelite2)
+		curveMove(line2, satelite2, 200)
+
+		// 关闭加载提示
+		Toast.closeAll();
+	})
+
+}
+
+/**
  * 初始化性能检测器
  * @return {[type]} [description]
  */
@@ -244,12 +388,12 @@ const initScene = async () => {
 	// 开启加载提示
 	Toast.load('scene is loading');
 
-	createVideoElement()
-	createShotBtn()
+	// createVideoElement()
+	// createShotBtn()
 
-	if(!pcDebug){
-		initWebRTC(document.getElementById('video-output'), videoSource)
-	}
+	// if(!pcDebug){
+	// 	initWebRTC(document.getElementById('video-output'), videoSource)
+	// }
 
 	// 初始化组件
 	let stats = initStats();
@@ -273,7 +417,7 @@ const initScene = async () => {
 	renderer.setPixelRatio( window.devicePixelRatio )
 
 	// 擦除背景色
-	renderer.setClearColor(new THREE.Color( 0x000000 ), 0.0)
+	renderer.setClearColor(new THREE.Color( 0x000000 ), 1.0)
 	// renderer.setClearAlpha(0.5)
 	renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
 	// renderer.shadowMap.enabled = true;
@@ -295,59 +439,7 @@ const initScene = async () => {
   worldAxes.visible = false;
   scene.add(worldAxes);
 
-  group1 = new THREE.Group()
-  scene.add(group1)
-
-  line = createCircle()
   
-	// line.scale.set( 1, 1, 1 );
-	group1.add( line );
-	group1.position.set( 0, 0, 0 );
-	group1.rotation.set( 0, Math.PI * 0.25, 0 );
-
-	cube = createCube()
-	cube.position.set(
-		line.geometry.clone().getAttribute('position').getX(0),
-		line.geometry.clone().getAttribute('position').getY(0),
-		line.geometry.clone().getAttribute('position').getZ(0)
-		)
-	cube.name = 'satellite1'
-	cube.scale.set(10, 10, 10)
-	cubeLabel = createTipPlane()
-	cubeLabel.scale.set(10, 10, 10)
-	// cubeLabel.position.copy(cube.position)
-	cubeLabel.visible = false
-	line.add(cube)
-	group1.add(cubeLabel)
-	createCustomTexture(cubeLabel, cube.name)
-
-	group2 = new THREE.Group()
-  scene.add(group2)
-
-	ellipseLine = createEllipse()
-	group2.add(ellipseLine)
-
-	// console.log(ellipseLine.geometry.clone().getAttribute('position').count)
-
-	sphere = createSphere()
-	sphere.position.set(
-		ellipseLine.geometry.clone().getAttribute('position').getX(0),
-		ellipseLine.geometry.clone().getAttribute('position').getY(0),
-		ellipseLine.geometry.clone().getAttribute('position').getZ(0)
-		)
-	sphere.name = 'satellite2'
-	cube.scale.set(5, 5, 5)
-	sphereLabel = createTipPlane(sphere.name)
-	sphereLabel.scale.set(5, 5, 5)
-	// sphereLabel.position.copy(sphere.position)
-	sphereLabel.visible = false
-	ellipseLine.add(sphere)
-	group2.add(sphereLabel)
-	createCustomTexture(sphereLabel, sphere.name)
-
-	curveMove(ellipseLine, sphere, 1000)
-
-	curveMove(line, cube, 700)
 
 	// 添加平行光
 	directionalLight = createDirectionLight();
@@ -358,10 +450,17 @@ const initScene = async () => {
   sky = createSky(skyDistance, skyEffectContr)
 	scene.add(sky)
 
+	testSatelite()
+
 	// 添加水面
-	water = createWater(directionalLight)
+	water = createWater(directionalLight, {
+		group1,
+		group2
+	})
 	water.rotation.x = - Math.PI * 0.5
 	scene.add( water )
+	
+	createStar(600, 900, 1000, scene)
 
   // 关闭加载提示
 	Toast.closeAll();

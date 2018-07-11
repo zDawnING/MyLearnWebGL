@@ -31,6 +31,7 @@ THREE.Water = function ( geometry, options ) {
 	var side = options.side !== undefined ? options.side : THREE.FrontSide;
 	var fog = options.fog !== undefined ? options.fog : false;
 
+	var objs = options.objs !== undefined ? options.objs : null
 	//
 
 	var mirrorPlane = new THREE.Plane();
@@ -292,6 +293,10 @@ THREE.Water = function ( geometry, options ) {
 		renderer.vr.enabled = false; // Avoid camera modification and recursion
 		renderer.shadowMap.autoUpdate = false; // Avoid re-computing shadows
 
+
+		objs['group1'].visible = false
+		objs['group2'].visible = false
+
 		renderer.render( scene, mirrorCamera, renderTarget, true );
 
 		scope.visible = true;
@@ -300,6 +305,9 @@ THREE.Water = function ( geometry, options ) {
 		renderer.shadowMap.autoUpdate = currentShadowAutoUpdate;
 
 		renderer.setRenderTarget( currentRenderTarget );
+
+		objs['group1'].visible = true
+		objs['group2'].visible = true
 
 	};
 

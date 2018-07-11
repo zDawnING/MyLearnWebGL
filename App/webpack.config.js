@@ -130,16 +130,17 @@ module.exports = {
       },
       //以后再采用下载obj进行加载
       {
-        test: /\.(obj|ctm|jsctm)$/,
+        test: /\.(obj|mtl)$/,
         use: [
           {
-            loader: 'file-loader',
+            loader: 'raw-loader',
             options: {
-              name: 'model/[name].[hash:8].[ext]'
+              name: 'images/[name].[ext]'
             }
           }
         ]
       },
+      // { test: /\.obj$/, loader: 'file' },
       {
         test: /\.(ttf|woff|woff2|otf)$/,
         loader: 'url-loader'

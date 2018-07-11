@@ -1,5 +1,7 @@
 var THREE = require('three');
 
+require('vendor_threejs/loaders/OBJLoader')
+require('vendor_threejs/loaders/MTLLoader')
 require('shader_gl/ar_scene/Water')
 
 let fontData = require('style_gl/fonts/gentilis_regular.typeface.json');
@@ -7,20 +9,22 @@ let fontData = require('style_gl/fonts/gentilis_regular.typeface.json');
 import dialogImg from "res_gl/img/dialog.png";
 import waterNormalImg from "res_gl/img/waternormals.jpg"
 
+import starImg from "res_gl/img/lensflare/lensflare0_alpha.png";
+
 export const createCircle = () => {
 	// 创建圆
 	let circleShape = new THREE.Shape();
-	circleShape.absarc( 0, 0, 300, 0, Math.PI * 2, false );
+	circleShape.absarc( 0, 0, 900, 0, Math.PI * 2, false );
 
 	circleShape.autoClose = true;
 
-	let points = circleShape.getPoints(600);
+	let points = circleShape.getPoints(1800);
 	// console.log(points)
 
 	let geometryPoints = new THREE.BufferGeometry().setFromPoints( points );
 	// console.log(geometryPoints)
 
-	return new THREE.Line( geometryPoints, new THREE.LineBasicMaterial( { color: 0xf08000, linewidth: 3 } ) );
+	return new THREE.Line( geometryPoints, new THREE.LineBasicMaterial( { color: 0xFFFFFF, linewidth: 3 } ) );
 }
 
 export const createSphere = () => {
@@ -32,14 +36,14 @@ export const createSphere = () => {
 export const createEllipse = () => {
 	let curve = new THREE.EllipseCurve(
 		0, 0,
-		150, 300,
+		450, 900,
 		0, Math.PI * 2,
 		false,
 		0
 		);
-	let points = curve.getPoints(600)
+	let points = curve.getPoints(1800)
 	let geometry = new THREE.BufferGeometry().setFromPoints(points)
-	let material = new THREE.LineBasicMaterial( {color: 0xFF0000} )
+	let material = new THREE.LineBasicMaterial( {color: 0xFFFFFF} )
 	return new THREE.Line( geometry, material )
 }
 
@@ -131,21 +135,100 @@ export const createCustomTexture = (mesh, name) => {
   // return texture
 }
 
-export const createWater = (light) => {
+/**
+ * 创建水面
+ * @param  {[type]} light [description]
+ * @return {[type]}       [description]
+ */
+export const createWater = (light, objs) => {
 	let geometry = new THREE.PlaneBufferGeometry(1000, 1000)
 	return new THREE.Water(geometry, {
-		textureWidth: 512,
-		textureHeight: 512,
+		textureWidth: 2048,
+		textureHeight: 2048,
 		waterNormals: new THREE.TextureLoader().load( 
 			waterNormalImg,
 			texture => {
 				texture.wrapS = texture.wrapT = THREE.RepeatWrapping
 			}
 		),
+		alpha: 1.0,
 		sunDirection: light.position.clone().normalize(),
 		sunColor: 0xffffff,
 		waterColor: 0x001e0f,
-		distortionScale:  3.7
+		distortionScale:  3.7,
+		fog: false,
+		objs
 	})
 }
 
+/**
+ * 创建星星
+ * @return {[type]} [description]
+ */
+export const createStar = (minDistance, boxRadius, pointNum, scene) => {
+	let points = []
+	let colors = []
+	let geometry = new THREE.Geometry()
+	let materials = [];
+	let texture = new THREE.TextureLoader().load( starImg )
+	let particles
+
+	for(let i=0, l = pointNum; i < l; i++){
+		// 范围在(-0.5r, 0.5r)
+		let vertex = new THREE.Vector3();
+		vertex.x = Math.random() * boxRadius - boxRadius * 0.5;
+		vertex.y = Math.random() * boxRadius - boxRadius * 0.5;
+		vertex.z = Math.random() * boxRadius - boxRadius * 0.5;
+		// 计算与原点的距离
+		let distance = vertex.distanceTo(new THREE.Vector3( 0, 0, 0 ))
+		if(distance > boxRadius * 0.4){
+			geometry.vertices.push( vertex );
+
+			materials[i] = new THREE.PointsMaterial({ 
+				size: Math.random() * 0.4 + 1.5, // (10, 30)
+				map: texture, 
+				blending: THREE.AdditiveBlending, 
+				transparent : true
+			});
+			materials[i].color.setHSL(
+				(vertex.x / boxRadius) + 0.5, (vertex.y / boxRadius) + 0.5, (vertex.z / boxRadius) + 0.5 
+			);
+			particles = new THREE.Points( geometry, materials[i] );
+			particles.frustumCulled = false
+			scene.add( particles )
+
+		}
+		
+	}
+}
+
+
+/**
+ * 加载obj模型
+ * @param  {[type]} path [description]
+ * @return {[type]}      [description]
+ */
+export const loadSatelitaModel = (path,  resolve, reject) => {
+	
+	const onProgress = function ( xhr ) {
+		if ( xhr.lengthComputable ) {
+			let percentComplete = xhr.loaded / xhr.total * 100;
+			console.log( Math.round(percentComplete, 2) + '% downloaded' );
+		}
+	};
+
+	const onError = function ( xhr ) { };
+	let material = new THREE.MeshNormalMaterial();
+	let objLoader = new THREE.OBJLoader();
+
+	objLoader.setPath( path );
+	objLoader.load( 'file.obj', function ( object ) {
+
+		for(let mesh of object.children){
+			mesh.material = material
+		}
+		resolve(object)
+
+	}, onProgress, onError );
+
+}
