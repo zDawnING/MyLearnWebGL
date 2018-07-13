@@ -77,7 +77,7 @@
 /***/function(e,t,r){
 // imports
 // module
-(e.exports=r(/*! ../../../node_modules/css-loader/lib/css-base.js */"./node_modules/css-loader/lib/css-base.js")(!1)).push([e.i,"body{\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}",""])},
+(e.exports=r(/*! ../../../node_modules/css-loader/lib/css-base.js */"./node_modules/css-loader/lib/css-base.js")(!1)).push([e.i,"body{\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\n.blue_btn {\n\tdisplay: block;\n    position: fixed;\n    right: .76923077em;\n    bottom: .76923077em;\n    color: #fff;\n    background-color: #347be6;\n    line-height: 1;\n    font-size: 1.07692308em;\n    padding: .61538462em 1.23076923em;\n    z-index: 10000;\n    border-radius: .30769231em;\n    box-shadow: 0 0 0.61538462em rgba(0,0,0,.4);\n}",""])},
 /***/"./node_modules/css-loader/lib/css-base.js":
 /*!*************************************************!*\
   !*** ./node_modules/css-loader/lib/css-base.js ***!

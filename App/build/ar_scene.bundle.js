@@ -119,7 +119,7 @@ this._chainedTweens[q].start(this._startTime+this._duration);return!1}return!0}}
 /***/function(e,t,n){
 // imports
 // module
-(e.exports=n(/*! ../../../node_modules/css-loader/lib/css-base.js */"./node_modules/css-loader/lib/css-base.js")(!1)).push([e.i,"body{\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}",""])},
+(e.exports=n(/*! ../../../node_modules/css-loader/lib/css-base.js */"./node_modules/css-loader/lib/css-base.js")(!1)).push([e.i,"body{\n\tmargin: 0;\n\tpadding: 0;\n\toverflow: hidden;\n}\n\n.blue_btn {\n\tdisplay: block;\n    position: fixed;\n    right: .76923077em;\n    bottom: .76923077em;\n    color: #fff;\n    background-color: #347be6;\n    line-height: 1;\n    font-size: 1.07692308em;\n    padding: .61538462em 1.23076923em;\n    z-index: 10000;\n    border-radius: .30769231em;\n    box-shadow: 0 0 0.61538462em rgba(0,0,0,.4);\n}",""])},
 /***/"./node_modules/css-loader/index.js!./src/style/common/layer.css":
 /*!**************************************************************!*\
   !*** ./node_modules/css-loader!./src/style/common/layer.css ***!
@@ -5010,15 +5010,15 @@ map:s,blending:a.AdditiveBlending,transparent:!0}),q[c].color.setHSL(d.x/t+.5,d.
   !*** ./src/views/ar_scene/webrtc.js ***!
   \**************************************/
 /*! no static exports found */
-/***/function(e,t,n){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),n(/*! com_gl/utils/webrtc_adpter */"./src/components/utils/webrtc_adpter.js");t.createVideoElement=function(){var e=document.createElement("video");e.setAttribute("id","video-output"),e.setAttribute("autoplay",""),e.setAttribute("playsinline",""),e.style.position="absolute",e.style.top=0,e.style.zIndex=-1e3,document.body.appendChild(e)},t.createShotBtn=function(e){var t=document.createElement("div");t.setAttribute("id","video_shot"),t.style.position="fixed",t.style.bottom="2%",t.style.left="45%",t.style.width="50px",t.style.height="50px",t.style.borderRadius="50px",t.style.background="#FF0000",t.style.zIndex=1e3,document.body.appendChild(t),t.onclick=function(t){i(t,e)}};var i=t.getScreenShot=function(e,t){var n=document.getElementById("video-output");if(n.videoWidth>0&&n.videoHeight){var i=document.createElement("canvas");i.width=window.innerWidth,i.height=window.innerHeight;var r=i.getContext("2d");console.log(window.innerWidth,window.innerHeight),console.log(n.videoWidth,n.videoHeight);
+/***/function(e,t,n){"use strict";Object.defineProperty(t,"__esModule",{value:!0}),n(/*! com_gl/utils/webrtc_adpter */"./src/components/utils/webrtc_adpter.js");t.createVideoElement=function(){var e=document.createElement("video");e.setAttribute("id","video-output"),e.setAttribute("autoplay",""),e.setAttribute("playsinline",""),e.style.position="absolute",e.style.top=0,e.style.zIndex=-1e3,document.body.appendChild(e)},t.createShotBtn=function(e){var t=document.createElement("div");t.setAttribute("id","video_shot"),t.style.position="fixed",t.style.bottom="2%",t.style.left="45%",t.style.width="50px",t.style.height="50px",t.style.borderRadius="50px",t.style.background="#FF0000",t.style.zIndex=1e3,document.body.appendChild(t),t.onclick=function(t){i(t,e)}};var i=t.getScreenShot=function(e,t){var n=document.getElementById("video-output");if(n.videoWidth>0&&n.videoHeight){var i=document.createElement("canvas");i.width=window.innerWidth,i.height=window.innerHeight;var o=i.getContext("2d");console.log(window.innerWidth,window.innerHeight),console.log(n.videoWidth,n.videoHeight);
 // console.log(video.style.marginLeft.split('px'))
 // 获取真实捕获到的视频流分辨率
 // 获取当前窗口宽高比
-var o=window.innerWidth/window.innerHeight;console.log(o);
+var a=window.innerWidth/window.innerHeight;console.log(a);
 // 获取视频图像中的偏移量
-var a=(o*n.videoHeight-n.videoWidth)/-2;console.log(a),
+var q=(a*n.videoHeight-n.videoWidth)/-2;console.log(q),
 // 绘制视频截取后的图像
-r.drawImage(n,a,0,n.videoWidth-2*a,n.videoHeight,0,0,window.innerWidth,window.innerHeight),
+o.drawImage(n,q,0,n.videoWidth-2*q,n.videoHeight,0,0,window.innerWidth,window.innerHeight),
 // console.log(document.querySelector('a-scene').components.screenshot)
 // let sceneCanvas = document.querySelector('a-scene').components.screenshot.getCanvas('perspective');
 console.log(t.domElement),
@@ -5026,8 +5026,12 @@ console.log(t.domElement),
 // image2.src = renderer.domElement.toDataURL('image/jpeg', 1)
 // let threeCanvas = document.querySelector('canvas')
 // console.log(threeCanvas)
-r.drawImage(t.domElement,0,0,window.innerWidth,window.innerHeight);var q=new Image;q.src=i.toDataURL("image/jpeg",1),console.log(i.toDataURL("image/jpeg"));i.toDataURL("image/jpeg",1);var s=document.createElement("img");s.setAttribute("id","show_pic"),s.setAttribute("src",q.src),s.style.position="fixed",s.style.top=0,s.style.left=0,s.style.zIndex=3e3,s.style.width=window.innerWidth+"px",s.style.height=window.innerHeight+"px",document.body.appendChild(s);var l=document.createElement("button");l.innerHTML="关闭",l.onclick=function(e){var t=document.getElementById("show_pic");document.body.removeChild(t)}}},r=(t.initWebRTC=function(e,t){e.width=window.innerWidth,e.height=window.innerHeight;window.innerWidth,window.innerHeight;var n={width:window.screen.width*window.devicePixelRatio,height:window.screen.height*window.devicePixelRatio,video:{deviceId:t?{exact:t}:void 0,// 移动端要deviceId和facingMode同时存在
-facingMode:{exact:"environment"}}};navigator.mediaDevices.getUserMedia(n).then(r).catch(a)},function(e){var t=document.getElementById("video-output");
+o.drawImage(t.domElement,0,0,window.innerWidth,window.innerHeight);var s=new Image;s.src=i.toDataURL("image/jpeg",1);
+// console.log(canvas.toDataURL('image/jpeg'))
+i.toDataURL("image/jpeg",1);r(s)}},r=function(e){var t=document.createElement("div");t.setAttribute("id","show_pic"),t.style.position="fixed",t.style.top=0,t.style.left=0,t.style.zIndex=3e3,document.body.appendChild(t);var n=document.createElement("img");n.setAttribute("src",e.src),n.style.width=window.innerWidth+"px",n.style.height=window.innerHeight+"px",t.appendChild(n);var i=document.createElement("div");i.setAttribute("class","blue_btn"),i.style.position="absolute",i.style.bottom="10%",
+// closeBtn.style.left = 45 + '%'
+i.innerHTML="关闭",t.appendChild(i),i.onclick=function(e){var t=document.getElementById("show_pic");document.body.removeChild(t)}},o=(t.initWebRTC=function(e,t){e.width=window.innerWidth,e.height=window.innerHeight;window.innerWidth,window.innerHeight;var n={width:window.screen.width*window.devicePixelRatio,height:window.screen.height*window.devicePixelRatio,video:{deviceId:t?{exact:t}:void 0,// 移动端要deviceId和facingMode同时存在
+facingMode:{exact:"environment"}}};navigator.mediaDevices.getUserMedia(n).then(o).catch(q)},function(e){var t=document.getElementById("video-output");
 // const track = stream.getVideoTracks()[0];
 //  let imageCapture = new ImageCapture(track);
 //  imageCapture.getPhotoSettings().then(photoSettings => {
@@ -5035,11 +5039,11 @@ facingMode:{exact:"environment"}}};navigator.mediaDevices.getUserMedia(n).then(r
 //   element.setAttribute('data-image_width', photoSettings.imageWidth)
 //   element.setAttribute('data-image_height', photoSettings.imageHeight)
 // })
-t.srcObject=e,t.onloadeddata=o}),o=function(){
+t.srcObject=e,t.onloadeddata=a}),a=function(){
 // document.getElementById('video_shot').addEventListener('click', getScreenShot);
 var e=document.getElementById("video-output");if(e.videoWidth/e.videoHeight>window.innerWidth/window.innerHeight){var t=e.videoWidth/e.videoHeight,n=window.innerHeight,i=t*n,r=.5*(i-window.innerWidth);
 // 重新计算video
-e.style.marginLeft=-r+"px",e.style.height=n+"px",e.style.width=i+"px"}},a=function(e){console.log("navigator.getUserMedia error: ",e)}},
+e.style.marginLeft=-r+"px",e.style.height=n+"px",e.style.width=i+"px"}},q=function(e){console.log("navigator.getUserMedia error: ",e)}},
 /***/"./src/views/lm_scene/light.js":
 /*!*************************************!*\
   !*** ./src/views/lm_scene/light.js ***!

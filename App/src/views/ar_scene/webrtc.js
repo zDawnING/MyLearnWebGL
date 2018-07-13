@@ -62,35 +62,41 @@ export const getScreenShot = (ev, renderer) => {
 
 		let image = new Image();
 		image.src = canvas.toDataURL('image/jpeg', 1)
-		console.log(canvas.toDataURL('image/jpeg'))
+		// console.log(canvas.toDataURL('image/jpeg'))
 		let url = canvas.toDataURL('image/jpeg', 1)
 		let name = 'test.png'
-		// location.href = image.src
-		let imageElement = document.createElement('img')
-		imageElement.setAttribute('id', 'show_pic')
-		imageElement.setAttribute('src', image.src)
-		imageElement.style.position = 'fixed'
-		imageElement.style.top = 0
-		imageElement.style.left = 0
-		imageElement.style.zIndex = 3000
-		imageElement.style.width = window.innerWidth + 'px'
-		imageElement.style.height = window.innerHeight + 'px'
-		document.body.appendChild(imageElement)
-		let closeBtn = document.createElement('button')
-		closeBtn.innerHTML = '关闭'
-		closeBtn.onclick = e => {
-			let child = document.getElementById('show_pic')
-			document.body.removeChild(child)
-		}
-		// const aLink = document.createElement('a')
-		// aLink.download = name
-		// aLink.href = url
-		// aLink.dispatchEvent(ev)
+		createPic(image)
 	}
 }
 
 const downloadImg = (ev, url, name) => {
 
+}
+
+const createPic = (image) => {
+	let divDom = document.createElement('div')
+	divDom.setAttribute('id', 'show_pic')
+	divDom.style.position = 'fixed'
+	divDom.style.top = 0
+	divDom.style.left = 0
+	divDom.style.zIndex = 3000
+	document.body.appendChild(divDom)
+	let imageElement = document.createElement('img')
+	imageElement.setAttribute('src', image.src)
+	imageElement.style.width = window.innerWidth + 'px'
+	imageElement.style.height = window.innerHeight + 'px'
+	divDom.appendChild(imageElement)
+	let closeBtn = document.createElement('div')
+	closeBtn.setAttribute('class', 'blue_btn')
+	closeBtn.style.position = 'absolute'
+	closeBtn.style.bottom = 10 + '%'
+	// closeBtn.style.left = 45 + '%'
+	closeBtn.innerHTML = '关闭'
+	divDom.appendChild(closeBtn)
+	closeBtn.onclick = e => {
+		let child = document.getElementById('show_pic')
+		document.body.removeChild(child)
+	}
 }
 
 export const initWebRTC = (element, videoSource) => {
