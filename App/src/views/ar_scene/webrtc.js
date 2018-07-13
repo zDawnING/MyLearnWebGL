@@ -66,9 +66,9 @@ export const getScreenShot = (ev, renderer) => {
 		let url = canvas.toDataURL('image/jpeg', 1)
 		let name = 'test.png'
 		// location.href = image.src
-		let imageElement = document.createElement('img')
-		imageElement.setAttribute('src', image.src)
-		document.body.appendChild(imageElement)
+		// let imageElement = document.createElement('img')
+		// imageElement.setAttribute('src', image.src)
+		// document.body.appendChild(imageElement)
 		// const aLink = document.createElement('a')
 		// aLink.download = name
 		// aLink.href = url
@@ -98,13 +98,13 @@ export const initWebRTC = (element, videoSource) => {
 
 const gotStream = (stream) => {
 	let element = document.getElementById('video-output')
-	const track = stream.getVideoTracks()[0];
-  let imageCapture = new ImageCapture(track);
-  imageCapture.getPhotoSettings().then(photoSettings => {
-	  console.log('capture image size:', photoSettings.imageWidth, photoSettings.imageHeight)
-	  element.setAttribute('data-image_width', photoSettings.imageWidth)
-	  element.setAttribute('data-image_height', photoSettings.imageHeight)
-	})
+	// const track = stream.getVideoTracks()[0];
+ //  let imageCapture = new ImageCapture(track);
+ //  imageCapture.getPhotoSettings().then(photoSettings => {
+	//   console.log('capture image size:', photoSettings.imageWidth, photoSettings.imageHeight)
+	//   element.setAttribute('data-image_width', photoSettings.imageWidth)
+	//   element.setAttribute('data-image_height', photoSettings.imageHeight)
+	// })
 	element.srcObject = stream;
 	element.onloadeddata = dealVideoEvent;
 }
