@@ -185,7 +185,7 @@ export const createStar = (minDistance, boxRadius, pointNum, scene) => {
 			geometry.vertices.push( vertex );
 
 			materials[i] = new THREE.PointsMaterial({ 
-				size: Math.random() * 0.4 + 1.5, // (10, 30)
+				size: Math.random() * 1 + 3, // (10, 30)
 				map: texture, 
 				blending: THREE.AdditiveBlending, 
 				transparent : true

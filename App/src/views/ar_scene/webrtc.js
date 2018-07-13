@@ -12,7 +12,7 @@ export const createVideoElement = () => {
 	document.body.appendChild( videoElement );
 }
 
-export const createShotBtn = () => {
+export const createShotBtn = (renderer) => {
 	let shotDiv = document.createElement('div')
 	shotDiv.setAttribute('id', 'video_shot')
 	shotDiv.style.position = 'fixed'
@@ -25,6 +25,59 @@ export const createShotBtn = () => {
 	shotDiv.style.zIndex = 1000
 
 	document.body.appendChild(shotDiv)
+
+	shotDiv.onclick = (ev) => {
+		getScreenShot(ev, renderer)
+	}
+}
+
+export const getScreenShot = (ev, renderer) => {
+	let video = document.getElementById('video-output')
+	if(video.videoWidth > 0 && video.videoHeight){
+		let canvas = document.createElement('canvas')
+		canvas.width = window.innerWidth;
+		canvas.height = window.innerHeight;
+		let canvasContext = canvas.getContext('2d')
+		console.log(window.innerWidth, window.innerHeight)
+		console.log(video.videoWidth, video.videoHeight)
+		// console.log(video.style.marginLeft.split('px'))
+		// 获取真实捕获到的视频流分辨率
+		
+		// 获取当前窗口宽高比
+		let aspectRatio = window.innerWidth/window.innerHeight
+		console.log(aspectRatio)
+		// 获取视频图像中的偏移量
+		let offsetLeft = (aspectRatio * video.videoHeight - video.videoWidth) / -2
+		console.log(offsetLeft)
+		// 绘制视频截取后的图像
+		canvasContext.drawImage(video, offsetLeft, 0, video.videoWidth - 2 * offsetLeft, video.videoHeight, 0, 0, window.innerWidth, window.innerHeight);
+		// console.log(document.querySelector('a-scene').components.screenshot)
+		// let sceneCanvas = document.querySelector('a-scene').components.screenshot.getCanvas('perspective');
+		console.log(renderer.domElement)
+		// let image2 = new Image()
+		// image2.src = renderer.domElement.toDataURL('image/jpeg', 1)
+		// let threeCanvas = document.querySelector('canvas')
+		// console.log(threeCanvas)
+		canvasContext.drawImage(renderer.domElement, 0, 0, window.innerWidth, window.innerHeight);
+
+		let image = new Image();
+		image.src = canvas.toDataURL('image/jpeg', 1)
+		console.log(canvas.toDataURL('image/jpeg'))
+		let url = canvas.toDataURL('image/jpeg', 1)
+		let name = 'test.png'
+		// location.href = image.src
+		let imageElement = document.createElement('img')
+		imageElement.setAttribute('src', image.src)
+		document.body.appendChild(imageElement)
+		// const aLink = document.createElement('a')
+		// aLink.download = name
+		// aLink.href = url
+		// aLink.dispatchEvent(ev)
+	}
+}
+
+const downloadImg = (ev, url, name) => {
+
 }
 
 export const initWebRTC = (element, videoSource) => {
@@ -45,6 +98,13 @@ export const initWebRTC = (element, videoSource) => {
 
 const gotStream = (stream) => {
 	let element = document.getElementById('video-output')
+	const track = stream.getVideoTracks()[0];
+  let imageCapture = new ImageCapture(track);
+  imageCapture.getPhotoSettings().then(photoSettings => {
+	  console.log('capture image size:', photoSettings.imageWidth, photoSettings.imageHeight)
+	  element.setAttribute('data-image_width', photoSettings.imageWidth)
+	  element.setAttribute('data-image_height', photoSettings.imageHeight)
+	})
 	element.srcObject = stream;
 	element.onloadeddata = dealVideoEvent;
 }

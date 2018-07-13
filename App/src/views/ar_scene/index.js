@@ -198,21 +198,22 @@ const render = () => {
 		updateLabelPosition(sphereLabel, sphere)
 	}
 
-	if(directionalLight.position.y <= -1 ){
-		directionalLight.visible = false
-	}else{
-		directionalLight.visible = true
-	}
-	skyEffectContr.inclination -= 0.0001
-	skyEffectContr.updateSkyEffect()
+	if(sky){
+		if(directionalLight.position.y <= -1 ){
+			directionalLight.visible = false
+		}else{
+			directionalLight.visible = true
+		}
+		skyEffectContr.inclination -= 0.0001
+		skyEffectContr.updateSkyEffect()
 
-	directionalLight.position.copy(sky.material.uniforms.sunPosition.value)
+		directionalLight.position.copy(sky.material.uniforms.sunPosition.value)
 
-	if(water){
-		water.material.uniforms.time.value += 1.0 / 60.0
-		// water.material.needsUpdate = true
+		if(water){
+			water.material.uniforms.time.value += 1.0 / 60.0
+			// water.material.needsUpdate = true
+		}
 	}
-	
 
 	// 使用帧动画函数
 	requestAnimationFrame(render)
@@ -316,7 +317,7 @@ const testSatelite = () => {
 		tempObjMesh = mesh
 		// 卫星1
 		satelite1 = tempObjMesh.clone()
-		satelite1.scale.set( 0.05, 0.05, 0.05 );
+		satelite1.scale.set( 0.1, 0.1, 0.1 );
 		// satelite1.position.set(0, 0, 0)
 		satelite1.rotation.set(0, Math.PI * 0.5, 0)
 		satelite1.name = 'satellite1'
@@ -333,7 +334,7 @@ const testSatelite = () => {
 
 		// 卫星2
 		satelite2 = tempObjMesh.clone()
-		satelite2.scale.set( 0.05, 0.05, 0.05 );
+		satelite2.scale.set( 0.1, 0.1, 0.1 );
 		// satelite2.position.set(0, 0, 0)
 		satelite2.rotation.set(0, -Math.PI * 0.2, 0)
 		satelite2.name = 'satellite2'
@@ -388,13 +389,6 @@ const initScene = async () => {
 	// 开启加载提示
 	Toast.load('scene is loading');
 
-	// createVideoElement()
-	// createShotBtn()
-
-	// if(!pcDebug){
-	// 	initWebRTC(document.getElementById('video-output'), videoSource)
-	// }
-
 	// 初始化组件
 	let stats = initStats();
 	// 创建场景
@@ -413,11 +407,11 @@ const initScene = async () => {
 	}
 
 	// 创建渲染器
-	renderer = new THREE.WebGLRenderer( {alpha: true} )
+	renderer = new THREE.WebGLRenderer( {alpha: true, preserveDrawingBuffer: true} )
 	renderer.setPixelRatio( window.devicePixelRatio )
 
 	// 擦除背景色
-	renderer.setClearColor(new THREE.Color( 0x000000 ), 1.0)
+	renderer.setClearColor(new THREE.Color( 0x000000 ), 0.0)
 	// renderer.setClearAlpha(0.5)
 	renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
 	// renderer.shadowMap.enabled = true;
@@ -447,20 +441,27 @@ const initScene = async () => {
   scene.add(directionalLight);
 
 	// 添加天空
-  sky = createSky(skyDistance, skyEffectContr)
-	scene.add(sky)
+ //  sky = createSky(skyDistance, skyEffectContr)
+	// scene.add(sky)
 
 	testSatelite()
 
-	// 添加水面
-	water = createWater(directionalLight, {
-		group1,
-		group2
-	})
-	water.rotation.x = - Math.PI * 0.5
-	scene.add( water )
+	// // 添加水面
+	// water = createWater(directionalLight, {
+	// 	group1,
+	// 	group2
+	// })
+	// water.rotation.x = - Math.PI * 0.5
+	// scene.add( water )
 	
 	createStar(600, 900, 1000, scene)
+
+	createVideoElement()
+	createShotBtn(renderer)
+
+	if(!pcDebug){
+		initWebRTC(document.getElementById('video-output'), videoSource)
+	}
 
   // 关闭加载提示
 	Toast.closeAll();
