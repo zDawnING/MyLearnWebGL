@@ -66,9 +66,22 @@ export const getScreenShot = (ev, renderer) => {
 		let url = canvas.toDataURL('image/jpeg', 1)
 		let name = 'test.png'
 		// location.href = image.src
-		// let imageElement = document.createElement('img')
-		// imageElement.setAttribute('src', image.src)
-		// document.body.appendChild(imageElement)
+		let imageElement = document.createElement('img')
+		imageElement.setAttribute('id', 'show_pic')
+		imageElement.setAttribute('src', image.src)
+		imageElement.style.position = 'fixed'
+		imageElement.style.top = 0
+		imageElement.style.left = 0
+		imageElement.style.zIndex = 3000
+		imageElement.style.width = window.innerWidth + 'px'
+		imageElement.style.height = window.innerHeight + 'px'
+		document.body.appendChild(imageElement)
+		let closeBtn = document.createElement('button')
+		closeBtn.innerHTML = '关闭'
+		closeBtn.onclick = e => {
+			let child = document.getElementById('show_pic')
+			document.body.removeChild(child)
+		}
 		// const aLink = document.createElement('a')
 		// aLink.download = name
 		// aLink.href = url

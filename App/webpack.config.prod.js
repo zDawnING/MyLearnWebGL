@@ -47,7 +47,7 @@ let entries = [
 ];
 // 初始化
 let plugins = [
-  new CleanWebpackPlugin(['dist']),
+  new CleanWebpackPlugin(['build']),
   // 启用js,css代码压缩
   new UglifyJsPlugin({
     uglifyOptions: {
@@ -106,7 +106,7 @@ module.exports = {
 	entry: entryData,
 	output: {
     filename: '[name].bundle.js',
-    path: path.resolve(__dirname, 'dist'),
+    path: path.resolve(__dirname, 'build'),
     //静态资源路径修改
     publicPath: './'
   },
@@ -114,7 +114,7 @@ module.exports = {
   mode: 'development',
   devtool: 'inline-source-map',
   devServer: {
-    contentBase: './dist',
+    contentBase: './build',
     publicPath: '/',
     // compress: true, // 开启压缩
     // open: true, // 打开浏览器
