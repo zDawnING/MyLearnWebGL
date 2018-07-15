@@ -23,6 +23,10 @@ import {
 	loadSatelitaModel
 } from 'ar_scene/mesh'
 import {
+  createArrow,
+  testArrow
+} from 'ar_scene/sprite'
+import {
 	curveMove
 } from 'ar_scene/animate'
 import {
@@ -42,8 +46,8 @@ import waterNormalImg from "res_gl/img/waternormals.jpg"
 let renderer; // 渲染器
 
 // 定义变量
-let camera; // 相机
-let scene; // 场景对象
+let camera, cameraOrtho; // 相机
+let scene, sceneOrtho; // 场景对象
 
 // 辅助组件
 let stats; // 检测动画运行帧频
@@ -56,6 +60,7 @@ let cubeLabel, sphereLabel;
 let satelite1, satelite2;
 let tempObjMesh;
 let line1, line2;
+let arrow;
 
 let videoSource;
 
@@ -215,9 +220,14 @@ const render = () => {
 		}
 	}
 
+  
 	// 使用帧动画函数
-	requestAnimationFrame(render)
-	renderer.render( scene, camera )
+  requestAnimationFrame(render)
+  renderer.clear();
+  renderer.render( scene, camera )
+  renderer.clearDepth()
+	renderer.render( sceneOrtho, cameraOrtho )
+  
 }
 
 
@@ -355,6 +365,10 @@ const testSatelite = () => {
 
 }
 
+const initScreenArrow = async () =>{
+  arrow = await createArrow(sceneOrtho)
+}
+
 /**
  * 初始化性能检测器
  * @return {[type]} [description]
@@ -376,7 +390,12 @@ const initStats = () => {
 function onResizeWindow(){
 	// 相机宽高比
 	camera.aspect = window.innerWidth/window.innerHeight;
-	camera.updateProjectionMatrix();
+  camera.updateProjectionMatrix();
+  cameraOrtho.left = - window.innerWidth / 2;
+  cameraOrtho.right = window.innerWidth / 2;
+  cameraOrtho.top = window.innerHeight / 2;
+  cameraOrtho.bottom = - window.innerHeight / 2;
+  cameraOrtho.updateProjectionMatrix();
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	document.body.style.width = window.innerWidth + 'px';
 	document.body.style.height = window.innerHeight + 'px';
@@ -392,8 +411,11 @@ const initScene = async () => {
 	// 初始化组件
 	let stats = initStats();
 	// 创建场景
-	scene = new THREE.Scene();
-	
+  scene = new THREE.Scene();
+  // 创建2D场景
+  sceneOrtho = new THREE.Scene();
+  
+  
 	if(pcDebug){
 		// 创建相机
 		camera = new THREE.PerspectiveCamera( 45, window.innerWidth/window.innerHeight, 0.1, 2000 );
@@ -404,14 +426,18 @@ const initScene = async () => {
 	}else{
 		camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 2000 );
 		camera.position.y = 20
-	}
+  }
+  
+  cameraOrtho = new THREE.OrthographicCamera( - window.innerWidth / 2, window.innerWidth / 2, window.innerHeight / 2, - window.innerHeight / 2, 1, 20 );
+  cameraOrtho.position.z = 10;
 
 	// 创建渲染器
 	renderer = new THREE.WebGLRenderer( {alpha: true, preserveDrawingBuffer: true} )
 	renderer.setPixelRatio( window.devicePixelRatio )
 
 	// 擦除背景色
-	renderer.setClearColor(new THREE.Color( 0x000000 ), 0.0)
+  renderer.setClearColor(new THREE.Color( 0xEEEEEE ), 1.0)
+  renderer.autoClear = false;
 	// renderer.setClearAlpha(0.5)
 	renderer.setSize(window.innerWidth, window.innerHeight); // 设置视口大小
 	// renderer.shadowMap.enabled = true;
@@ -441,18 +467,20 @@ const initScene = async () => {
   scene.add(directionalLight);
 
 	// 添加天空
- //  sky = createSky(skyDistance, skyEffectContr)
+  // sky = createSky(skyDistance, skyEffectContr)
 	// scene.add(sky)
 
-	testSatelite()
+  testSatelite()
+  
+  initScreenArrow()
 
 	// // 添加水面
-	// water = createWater(directionalLight, {
-	// 	group1,
-	// 	group2
-	// })
-	// water.rotation.x = - Math.PI * 0.5
-	// scene.add( water )
+	water = createWater(directionalLight, {
+		group1,
+		group2
+	})
+	water.rotation.x = - Math.PI * 0.5
+	scene.add( water )
 	
 	createStar(600, 900, 1000, scene)
 

@@ -24,7 +24,7 @@ export const createCircle = () => {
 	let geometryPoints = new THREE.BufferGeometry().setFromPoints( points );
 	// console.log(geometryPoints)
 
-	return new THREE.Line( geometryPoints, new THREE.LineBasicMaterial( { color: 0xFFFFFF, linewidth: 3 } ) );
+	return new THREE.Line( geometryPoints, new THREE.LineBasicMaterial( { color: 0xFF0000, linewidth: 3 } ) );
 }
 
 export const createSphere = () => {
